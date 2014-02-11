@@ -36,7 +36,7 @@ final class Native {
     static {
         // Load the library
         // NarSystem is auto-created by the nar plugin
-        NarSystem.loadLibrary();
+        //NarSystem.loadLibrary();
     }
 
     // EventLoop operations and constants
