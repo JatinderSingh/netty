@@ -15,7 +15,7 @@
   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
   KIND, either express or implied.  See the License for the
   specific language governing permissions and limitations
-  under the License.    
+  under the License.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
@@ -70,27 +70,21 @@
         <version>1.10-SNAPSHOT</version>
         <executions>
           <execution>
-            <id>generate</id>
-            <configuration>
-              <name>${artifactId}</name>
-              <nativeSourceDirectory>${basedir}/src/main/c</nativeSourceDirectory>
-            </configuration>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-            <phase>compile</phase>
-          </execution>
-          <execution>
             <id>build-linux64</id>
             <configuration>
               <name>${artifactId}</name>
-              <libDirectory>${basedir}/target/classes/</libDirectory>
+              <buildDirectory>${project.build.directory}/linux64</buildDirectory>
+              <nativeSourceDirectory>${nativeSourceDirectory}</nativeSourceDirectory>
+              <libDirectory>${libDirectory}</libDirectory>
               <configureArgs>
-                <arg>--with-universal=x86_64</arg>
+                <arg>--with-arch=x86_64</arg>
               </configureArgs>
               <platform>linux64</platform>
+              <forceConfigure>true</forceConfigure>
+              <forceAutogen>true</forceAutogen>
             </configuration>
             <goals>
+              <goal>generate</goal>
               <goal>build</goal>
             </goals>
             <phase>compile</phase>
@@ -98,14 +92,19 @@
           <execution>
             <id>build-linux32</id>
             <configuration>
-              <libDirectory>${basedir}/target/classes/</libDirectory>
+              <buildDirectory>${project.build.directory}/linux32</buildDirectory>
+                <nativeSourceDirectory>${nativeSourceDirectory}</nativeSourceDirectory>
+                <libDirectory>${libDirectory}</libDirectory>
               <name>${artifactId}</name>
               <configureArgs>
-                <arg>--with-universal=i386</arg>
+                <arg>--with-arch=i386</arg>
               </configureArgs>
               <platform>linux32</platform>
+              <forceConfigure>true</forceConfigure>
+              <forceAutogen>true</forceAutogen>
             </configuration>
             <goals>
+              <goal>generate</goal>
               <goal>build</goal>
             </goals>
             <phase>compile</phase>
@@ -114,4 +113,8 @@
       </plugin>
     </plugins>
   </build>
+  <properties>
+    <nativeSourceDirectory>${basedir}/src/main/c</nativeSourceDirectory>
+    <libDirectory>${basedir}/target/classes/</libDirectory>
+  </properties>
 </project>
