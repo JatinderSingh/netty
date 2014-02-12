@@ -44,8 +44,9 @@
         <groupId>org.fusesource.hawtjni</groupId>
         <artifactId>maven-hawtjni-plugin</artifactId>
         <version>1.10-SNAPSHOT</version>
-<!--
         <configuration>
+          <nativeSourceDirectory>${basedir}/src/main/c</nativeSourceDirectory>
+<!--
           <name>epoll-transport</name>
           <classified>false</classified>
           <nativeSrcDependency>
@@ -55,8 +56,8 @@
             <classifier>native-src</classifier>
             <type>zip</type>
           </nativeSrcDependency>
-        </configuration>
 -->
+        </configuration>
       </plugin>
 <!--
       <plugin>
