@@ -125,7 +125,6 @@
       <activation>
         <os>
           <family>linux</family>
-          <arch>x86_64</arch>
         </os>
       </activation>
       <modules>
