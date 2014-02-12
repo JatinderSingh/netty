@@ -170,6 +170,13 @@
 
   <dependencyManagement>
     <dependencies>
+      <!-- Dependency for easily use JNI code by our users-->
+      <dependency>
+        <groupId>org.fusesource.hawtjni</groupId>
+        <artifactId>hawtjni-runtime</artifactId>
+        <version>1.9</version>
+      </dependency>
+
       <!-- Byte code generator - completely optional -->
       <dependency>
         <groupId>org.javassist</groupId>
