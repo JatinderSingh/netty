@@ -23,7 +23,7 @@ AC_DEFUN([CUSTOM_M4_SETUP],
   [
     AS_IF(test -n "$withval", [
       ARCH="$withval"
-      AC_MSG_RESULT([yes, archs: $OSX_UNIVERSAL])
+      AC_MSG_RESULT([yes, archs: $ARCH])
     ])
   ],[
     ARCH=""
