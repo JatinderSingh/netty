@@ -29,11 +29,6 @@
 #include <fcntl.h>
 #include "io_netty_channel_epoll_Native.h"
 
-#define EPOLL_READ 0x01
-#define EPOLL_WRITE 0x02
-#define EPOLL_ACCEPT 0x04
-#define EPOLL_RDHUP 0x08
-
 
 // optional
 extern int accept4(int sockFd, struct sockaddr *addr, socklen_t *addrlen, int flags) __attribute__((weak));
