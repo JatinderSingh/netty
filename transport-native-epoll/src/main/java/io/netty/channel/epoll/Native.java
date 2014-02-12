@@ -17,6 +17,7 @@ package io.netty.channel.epoll;
 
 
 import io.netty.channel.DefaultFileRegion;
+import org.fusesource.hawtjni.runtime.Library;
 
 import java.io.IOException;
 import java.net.Inet6Address;
@@ -33,10 +34,13 @@ final class Native {
     private static final byte[] IPV4_MAPPED_IPV6_PREFIX = {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0xff, (byte) 0xff };
 
+
+    private static final Library LIBRARY = new Library("native", Native.class);
     static {
         // Load the library
         // NarSystem is auto-created by the nar plugin
         //NarSystem.loadLibrary();
+        LIBRARY.load();
     }
 
     // EventLoop operations and constants

@@ -46,56 +46,8 @@
         <version>1.10-SNAPSHOT</version>
         <configuration>
           <nativeSourceDirectory>${basedir}/src/main/c</nativeSourceDirectory>
-<!--
-          <name>epoll-transport</name>
-          <classified>false</classified>
-          <nativeSrcDependency>
-            <groupId>org.fusesource.leveldbjni</groupId>
-            <artifactId>leveldbjni</artifactId>
-            <version>${project.version}</version>
-            <classifier>native-src</classifier>
-            <type>zip</type>
-          </nativeSrcDependency>
--->
         </configuration>
       </plugin>
-<!--
-      <plugin>
-        <groupId>com.github.maven-nar</groupId>
-        <artifactId>nar-maven-plugin</artifactId>
-        <version>3.0.0</version>
-        <extensions>true</extensions>
-        <configuration>
-          <java>
-            <include>true</include>
-          </java>
-          <c>
-           <clearDefaultOptions>true</clearDefaultOptions>
-           <options>
-             <option>-Wall</option>
-             <option>-Wno-long-long</option>
-             <option>-Wconversion</option>
-           </options>
-          </c>
-          <libraries>
-            <library>
-              <linkCPP>false</linkCPP>
-              <type>jni</type>
-              <narSystemPackage>io.netty.channel.epoll</narSystemPackage>
-            </library>
-          </libraries>
-        </configuration>
-        <executions>
-          <execution>
-            <id>test</id>
-            <phase>test</phase>
-            <goals>
-              <goal>nar-integration-test</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
--->
       <plugin>
         <artifactId>maven-deploy-plugin</artifactId>
         <configuration>
@@ -120,6 +72,11 @@
       <groupId>io.netty</groupId>
       <artifactId>netty-transport</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.fusesource.hawtjni</groupId>
+      <artifactId>hawtjni-runtime</artifactId>
+      <version>1.9</version>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
