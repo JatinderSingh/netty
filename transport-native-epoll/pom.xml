@@ -28,39 +28,6 @@
 
   <name>Netty/Transport/Native/Epoll</name>
   <packaging>jar</packaging>
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>2.3.1</version>
-      </plugin>
-      <plugin>
-        <groupId>org.fusesource.hawtjni</groupId>
-        <artifactId>maven-hawtjni-plugin</artifactId>
-        <version>1.10-SNAPSHOT</version>
-        <configuration>
-          <nativeSourceDirectory>${basedir}/src/main/c</nativeSourceDirectory>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>generate</goal>
-              <goal>build</goal>
-              <goal>package-jar</goal>
-              <goal>package-source</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-deploy-plugin</artifactId>
-        <configuration>
-          <skip>true</skip>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 
   <dependencies>
     <dependency>
@@ -94,4 +61,57 @@
       <artifactId>junit</artifactId>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.fusesource.hawtjni</groupId>
+        <artifactId>maven-hawtjni-plugin</artifactId>
+        <version>1.10-SNAPSHOT</version>
+        <executions>
+          <execution>
+            <id>generate</id>
+            <configuration>
+              <name>${artifactId}</name>
+              <nativeSourceDirectory>${basedir}/src/main/c</nativeSourceDirectory>
+            </configuration>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>compile</phase>
+          </execution>
+          <execution>
+            <id>build-linux64</id>
+            <configuration>
+              <name>${artifactId}</name>
+              <libDirectory>${basedir}/target/classes/</libDirectory>
+              <configureArgs>
+                <arg>--with-universal=x86_64</arg>
+              </configureArgs>
+              <platform>linux64</platform>
+            </configuration>
+            <goals>
+              <goal>build</goal>
+            </goals>
+            <phase>compile</phase>
+          </execution>
+          <execution>
+            <id>build-linux32</id>
+            <configuration>
+              <libDirectory>${basedir}/target/classes/</libDirectory>
+              <name>${artifactId}</name>
+              <configureArgs>
+                <arg>--with-universal=i386</arg>
+              </configureArgs>
+              <platform>linux32</platform>
+            </configuration>
+            <goals>
+              <goal>build</goal>
+            </goals>
+            <phase>compile</phase>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>
