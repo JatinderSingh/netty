@@ -492,9 +492,6 @@ public final class EpollSocketChannel extends AbstractEpollChannel implements So
             if (allocHandle == null) {
                 this.allocHandle = allocHandle = config.getRecvByteBufAllocator().newHandle();
             }
-            if (!config.isAutoRead()) {
-                clearEpollIn();
-            }
 
             ByteBuf byteBuf = null;
             boolean close = false;
@@ -516,7 +513,19 @@ public final class EpollSocketChannel extends AbstractEpollChannel implements So
                     pipeline.fireChannelRead(byteBuf);
                     byteBuf = null;
 
+                    if (totalReadAmount >= Integer.MAX_VALUE - localReadAmount) {
+                        // Avoid overflow.
+                        totalReadAmount = Integer.MAX_VALUE;
+                        break;
+                    }
+
                     totalReadAmount += localReadAmount;
+
+                    // stop reading
+                    if (!config.isAutoRead()) {
+                        break;
+                    }
+
                     if (localReadAmount < writable) {
                         // Read less than what the buffer can hold,
                         // which might mean we drained the recv buffer completely.
@@ -533,6 +542,10 @@ public final class EpollSocketChannel extends AbstractEpollChannel implements So
                 }
             } catch (Throwable t) {
                 handleReadException(pipeline, byteBuf, t, close);
+            } finally {
+                if (!config.isAutoRead()) {
+                    clearEpollIn();
+                }
             }
         }
     }

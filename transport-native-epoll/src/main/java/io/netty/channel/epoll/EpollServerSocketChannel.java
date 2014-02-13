@@ -84,28 +84,37 @@ public final class EpollServerSocketChannel extends AbstractEpollChannel impleme
         @Override
         void epollInReady() {
             assert eventLoop().inEventLoop();
-            if (!config().isAutoRead()) {
-                clearEpollIn();
-            }
-
-            final ChannelPipeline pipeline = pipeline();
-            Throwable exception = null;
             try {
-                for (;;) {
-                    int socketFd = Native.accept(fd);
-                    if (socketFd == -1) {
-                        // this means everything was handled for now
-                        break;
-                    }
-                    pipeline.fireChannelRead(new EpollSocketChannel(EpollServerSocketChannel.this, socketFd));
-                }
-            } catch (Throwable t) {
-                exception = t;
-            }
-            pipeline.fireChannelReadComplete();
+                final ChannelPipeline pipeline = pipeline();
+                final int maxMessagesPerRead = config.getMaxMessagesPerRead();
 
-            if (exception != null) {
-                pipeline.fireExceptionCaught(exception);
+                Throwable exception = null;
+                try {
+                    for (int i = 0; i < maxMessagesPerRead; i++) {
+                        int socketFd = Native.accept(fd);
+                        if (socketFd == -1) {
+                            // this means everything was handled for now
+                            break;
+                        }
+                        pipeline.fireChannelRead(new EpollSocketChannel(EpollServerSocketChannel.this, socketFd));
+
+                        // stop reading
+                        if (!config.isAutoRead()) {
+                            break;
+                        }
+                    }
+                } catch (Throwable t) {
+                    exception = t;
+                }
+                pipeline.fireChannelReadComplete();
+
+                if (exception != null) {
+                    pipeline.fireExceptionCaught(exception);
+                }
+            } finally {
+                if (!config().isAutoRead()) {
+                    clearEpollIn();
+                }
             }
         }
     }
