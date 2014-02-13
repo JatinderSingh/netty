@@ -67,7 +67,7 @@
       <plugin>
         <groupId>org.fusesource.hawtjni</groupId>
         <artifactId>maven-hawtjni-plugin</artifactId>
-        <version>1.10-SNAPSHOT</version>
+        <version>1.10</version>
         <executions>
           <execution>
             <id>build-linux64</id>
