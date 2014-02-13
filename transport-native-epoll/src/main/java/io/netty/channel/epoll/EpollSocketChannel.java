@@ -334,7 +334,7 @@ public final class EpollSocketChannel extends AbstractEpollChannel implements So
         @Override
         public void connect(
                 final SocketAddress remoteAddress, final SocketAddress localAddress, final ChannelPromise promise) {
-            if (!ensureOpen(promise)) {
+            if (!promise.setUncancellable() || !ensureOpen(promise)) {
                 return;
             }
 
@@ -345,11 +345,7 @@ public final class EpollSocketChannel extends AbstractEpollChannel implements So
 
                 boolean wasActive = isActive();
                 if (doConnect((InetSocketAddress) remoteAddress, (InetSocketAddress) localAddress)) {
-                    active = true;
-                    promise.setSuccess();
-                    if (!wasActive && isActive()) {
-                        pipeline().fireChannelActive();
-                    }
+                    fulfillConnectPromise(promise, wasActive);
                 } else {
                     connectPromise = promise;
                     requestedRemoteAddress = remoteAddress;
@@ -394,14 +390,36 @@ public final class EpollSocketChannel extends AbstractEpollChannel implements So
             }
         }
 
-        @Override
-        void epollOutReady() {
-            if (connectPromise != null) {
-                // pending connect which is now complete so handle it.
-                finishConnect();
-            } else {
-                super.epollOutReady();
+        private void fulfillConnectPromise(ChannelPromise promise, boolean wasActive) {
+            if (promise == null) {
+                // Closed via cancellation and the promise has been notified already.
+                return;
             }
+            active = true;
+
+            // trySuccess() will return false if a user cancelled the connection attempt.
+            boolean promiseSet = promise.trySuccess();
+
+            // Regardless if the connection attempt was cancelled, channelActive() event should be triggered,
+            // because what happened is what happened.
+            if (!wasActive && isActive()) {
+                pipeline().fireChannelActive();
+            }
+
+            // If a user cancelled the connection attempt, close the channel, which is followed by channelInactive().
+            if (!promiseSet) {
+                close(voidPromise());
+            }
+        }
+
+        private void fulfillConnectPromise(ChannelPromise promise, Throwable cause) {
+            if (promise == null) {
+                // Closed via cancellation and the promise has been notified already.
+            }
+
+            // Use tryFailure() instead of setFailure() to avoid the race against cancel().
+            promise.tryFailure(cause);
+            closeIfClosed();
         }
 
         private void finishConnect() {
@@ -409,16 +427,11 @@ public final class EpollSocketChannel extends AbstractEpollChannel implements So
             // neither cancelled nor timed out.
 
             assert eventLoop().inEventLoop();
-            assert connectPromise != null;
 
             try {
                 boolean wasActive = isActive();
                 doFinishConnect();
-                active = true;
-                connectPromise.setSuccess();
-                if (!wasActive && isActive()) {
-                    pipeline().fireChannelActive();
-                }
+                fulfillConnectPromise(connectPromise, wasActive);
             } catch (Throwable t) {
                 if (t instanceof ConnectException) {
                     Throwable newT = new ConnectException(t.getMessage() + ": " + requestedRemoteAddress);
@@ -426,11 +439,24 @@ public final class EpollSocketChannel extends AbstractEpollChannel implements So
                     t = newT;
                 }
 
-                connectPromise.setFailure(t);
-                closeIfClosed();
+                fulfillConnectPromise(connectPromise, t);
             } finally {
-                connectTimeoutFuture.cancel(false);
+                // Check for null as the connectTimeoutFuture is only created if a connectTimeoutMillis > 0 is used
+                // See https://github.com/netty/netty/issues/1770
+                if (connectTimeoutFuture != null) {
+                    connectTimeoutFuture.cancel(false);
+                }
                 connectPromise = null;
+            }
+        }
+
+        @Override
+        void epollOutReady() {
+            if (connectPromise != null) {
+                // pending connect which is now complete so handle it.
+                finishConnect();
+            } else {
+                super.epollOutReady();
             }
         }
 

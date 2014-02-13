@@ -35,8 +35,8 @@ abstract class AbstractEpollChannel extends AbstractChannel {
     AbstractEpollChannel(Channel parent, int fd, int flag) {
         super(parent);
         this.fd = fd;
-        this.readFlag = flag;
-        this.flags |= flag;
+        readFlag = flag;
+        flags |= flag;
     }
 
     AbstractEpollChannel(int flag) {
