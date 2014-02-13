@@ -46,10 +46,6 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.fusesource.hawtjni</groupId>
-      <artifactId>hawtjni-runtime</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-testsuite</artifactId>
       <version>${project.version}</version>
@@ -72,7 +68,7 @@
           <execution>
             <id>build-linux64</id>
             <configuration>
-              <name>${artifactId}</name>
+              <name>${project.artifactId}</name>
               <buildDirectory>${project.build.directory}/linux64</buildDirectory>
               <nativeSourceDirectory>${nativeSourceDirectory}</nativeSourceDirectory>
               <libDirectory>${libDirectory}</libDirectory>
@@ -95,7 +91,7 @@
               <buildDirectory>${project.build.directory}/linux32</buildDirectory>
                 <nativeSourceDirectory>${nativeSourceDirectory}</nativeSourceDirectory>
                 <libDirectory>${libDirectory}</libDirectory>
-              <name>${artifactId}</name>
+              <name>${project.artifactId}</name>
               <configureArgs>
                 <arg>--with-arch=i386</arg>
               </configureArgs>
