@@ -21,7 +21,7 @@ public final class EpollChannelOption<T> extends ChannelOption<T> {
 
     public static final ChannelOption<Boolean> TCP_CORK = valueOf("TCP_CORK");
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({ "unused", "deprecation" })
     private EpollChannelOption(String name) {
         super(name);
     }

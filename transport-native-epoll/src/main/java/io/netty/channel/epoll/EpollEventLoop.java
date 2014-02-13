@@ -18,6 +18,7 @@ package io.netty.channel.epoll;
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SingleThreadEventLoop;
+import io.netty.util.internal.PlatformDependent;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
@@ -36,20 +37,29 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
  */
 final class EpollEventLoop extends SingleThreadEventLoop {
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(EpollEventLoop.class);
+    private static final AtomicIntegerFieldUpdater<EpollEventLoop> WAKEN_UP_UPDATER;
+
+    static {
+        AtomicIntegerFieldUpdater<EpollEventLoop> updater =
+                PlatformDependent.newAtomicIntegerFieldUpdater(EpollEventLoop.class, "wakenUp");
+        if (updater == null) {
+            updater = AtomicIntegerFieldUpdater.newUpdater(EpollEventLoop.class, "wakenUp");
+        }
+        WAKEN_UP_UPDATER = updater;
+    }
 
     private final int epfd;
     private final int evfd;
+    private final Map<Integer, AbstractEpollChannel> ids = new HashMap<Integer, AbstractEpollChannel>();
+    private final long[] events;
+
     private int id;
-    @SuppressWarnings("unused")
-    private volatile int wakenUp;
-    private static final AtomicIntegerFieldUpdater<EpollEventLoop> WAKEN_UP_UPDATER =
-            AtomicIntegerFieldUpdater.newUpdater(EpollEventLoop.class, "wakenUp");
     private int oldWakenUp;
     private boolean overflown;
 
-    private static final int IO_RATIO = 50;
-    private final Map<Integer, AbstractEpollChannel> ids = new HashMap<Integer, AbstractEpollChannel>();
-    private final long[] events;
+    @SuppressWarnings("unused")
+    private volatile int wakenUp;
+    private volatile int ioRatio = 50;
 
     EpollEventLoop(EventLoopGroup parent, ThreadFactory threadFactory, int maxEvents) {
         super(parent, threadFactory, false);
@@ -148,6 +158,24 @@ final class EpollEventLoop extends SingleThreadEventLoop {
         return new ConcurrentLinkedQueue<Runnable>();
     }
 
+    /**
+     * Returns the percentage of the desired amount of time spent for I/O in the event loop.
+     */
+    public int getIoRatio() {
+        return ioRatio;
+    }
+
+    /**
+     * Sets the percentage of the desired amount of time spent for I/O in the event loop.  The default value is
+     * {@code 50}, which means the event loop will try to spend the same amount of time for I/O as for non-I/O tasks.
+     */
+    public void setIoRatio(int ioRatio) {
+        if (ioRatio <= 0 || ioRatio > 100) {
+            throw new IllegalArgumentException("ioRatio: " + ioRatio + " (expected: 0 < ioRatio <= 100)");
+        }
+        this.ioRatio = ioRatio;
+    }
+
     private int epollWait() {
         int selectCnt = 0;
         long currentTimeNanos = System.nanoTime();
@@ -223,15 +251,22 @@ final class EpollEventLoop extends SingleThreadEventLoop {
                     }
                 }
 
-                final long ioStartTime = System.nanoTime();
-                if (ready > 0) {
-                    processReady(events, ready);
+                final int ioRatio = this.ioRatio;
+                if (ioRatio == 100) {
+                    if (ready > 0) {
+                        processReady(events, ready);
+                    }
+                    runAllTasks();
+                } else {
+                    final long ioStartTime = System.nanoTime();
+
+                    if (ready > 0) {
+                        processReady(events, ready);
+                    }
+
+                    final long ioTime = System.nanoTime() - ioStartTime;
+                    runAllTasks(ioTime * (100 - ioRatio) / ioRatio);
                 }
-
-                final long ioTime = System.nanoTime() - ioStartTime;
-
-                final int ioRatio = IO_RATIO;
-                runAllTasks(ioTime * (100 - ioRatio) / ioRatio);
 
                 if (isShuttingDown()) {
                     closeAll();

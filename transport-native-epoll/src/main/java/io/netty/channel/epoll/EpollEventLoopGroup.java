@@ -27,30 +27,47 @@ import java.util.concurrent.ThreadFactory;
  */
 public final class EpollEventLoopGroup extends MultithreadEventLoopGroup {
 
+    /**
+     * Create a new instance using the default number of threads and the default {@link ThreadFactory}.
+     */
     public EpollEventLoopGroup() {
-        super(0, null);
+        this(0);
     }
 
+    /**
+     * Create a new instance using the specified number of threads and the default {@link ThreadFactory}.
+     */
     public EpollEventLoopGroup(int nThreads) {
-        super(nThreads, null);
+        this(nThreads, null);
     }
 
+    /**
+     * Create a new instance using the specified number of threads and the given {@link ThreadFactory}.
+     */
     public EpollEventLoopGroup(int nThreads, ThreadFactory threadFactory) {
-        super(nThreads, threadFactory);
+        this(nThreads, threadFactory, 128);
     }
 
-    public EpollEventLoopGroup(int nThreads, ThreadFactory threadFactory, int maxEvents) {
-        super(nThreads, threadFactory, maxEvents);
+    /**
+     * Create a new instance using the specified number of threads, the given {@link ThreadFactory} and the given
+     * maximal amount of epoll events to handle per epollWait(...).
+     */
+    public EpollEventLoopGroup(int nThreads, ThreadFactory threadFactory, int maxEventsAtOnce) {
+        super(nThreads, threadFactory, maxEventsAtOnce);
+    }
+
+    /**
+     * Sets the percentage of the desired amount of time spent for I/O in the child event loops.  The default value is
+     * {@code 50}, which means the event loop will try to spend the same amount of time for I/O as for non-I/O tasks.
+     */
+    public void setIoRatio(int ioRatio) {
+        for (EventExecutor e: children()) {
+            ((EpollEventLoop) e).setIoRatio(ioRatio);
+        }
     }
 
     @Override
     protected EventExecutor newChild(ThreadFactory threadFactory, Object... args) throws Exception {
-        int maxEvents;
-        if (args.length == 1) {
-            maxEvents = (Integer) args[0];
-        } else {
-            maxEvents = 128;
-        }
-        return new EpollEventLoop(this, threadFactory, maxEvents);
+        return new EpollEventLoop(this, threadFactory, (Integer) args[0]);
     }
 }
