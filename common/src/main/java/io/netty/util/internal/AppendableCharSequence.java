@@ -29,6 +29,11 @@ public final class AppendableCharSequence implements CharSequence, Appendable {
         chars = new char[length];
     }
 
+    public AppendableCharSequence(String string) {
+        chars = string.toCharArray();
+        pos = chars.length;
+    }
+
     private AppendableCharSequence(char[] chars) {
         this.chars = chars;
     }

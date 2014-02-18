@@ -26,6 +26,7 @@
 
   <artifactId>netty-common</artifactId>
   <packaging>jar</packaging>
+  <version>4.0.16.Final-Optimized</version>
 
   <name>Netty/Common</name>
 

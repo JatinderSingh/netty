@@ -15,6 +15,7 @@
  */
 package io.netty.handler.codec.http;
 
+import io.netty.util.internal.AppendableCharSequence;
 import io.netty.util.internal.StringUtil;
 
 /**
@@ -23,7 +24,7 @@ import io.netty.util.internal.StringUtil;
 public class DefaultHttpRequest extends DefaultHttpMessage implements HttpRequest {
 
     private HttpMethod method;
-    private String uri;
+    private AppendableCharSequence uri;
 
     /**
      * Creates a new instance.
@@ -32,7 +33,7 @@ public class DefaultHttpRequest extends DefaultHttpMessage implements HttpReques
      * @param method      the HTTP getMethod of the request
      * @param uri         the URI or path of the request
      */
-    public DefaultHttpRequest(HttpVersion httpVersion, HttpMethod method, String uri) {
+    public DefaultHttpRequest(HttpVersion httpVersion, HttpMethod method, AppendableCharSequence uri) {
         this(httpVersion, method, uri, true);
     }
 
@@ -44,7 +45,8 @@ public class DefaultHttpRequest extends DefaultHttpMessage implements HttpReques
      * @param uri               the URI or path of the request
      * @param validateHeaders   validate the headers when adding them
      */
-    public DefaultHttpRequest(HttpVersion httpVersion, HttpMethod method, String uri, boolean validateHeaders) {
+    public DefaultHttpRequest(HttpVersion httpVersion, HttpMethod method, AppendableCharSequence uri,
+        boolean validateHeaders) {
         super(httpVersion, validateHeaders);
         if (method == null) {
             throw new NullPointerException("method");
@@ -62,7 +64,7 @@ public class DefaultHttpRequest extends DefaultHttpMessage implements HttpReques
     }
 
     @Override
-    public String getUri() {
+    public AppendableCharSequence getUri() {
         return uri;
     }
 
@@ -76,7 +78,7 @@ public class DefaultHttpRequest extends DefaultHttpMessage implements HttpReques
     }
 
     @Override
-    public HttpRequest setUri(String uri) {
+    public HttpRequest setUri(AppendableCharSequence uri) {
         if (uri == null) {
             throw new NullPointerException("uri");
         }

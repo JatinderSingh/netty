@@ -18,6 +18,8 @@ package io.netty.handler.codec.http;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.compression.ZlibWrapper;
 import io.netty.handler.codec.http.HttpHeaders.Names;
+import io.netty.util.internal.AppendableCharSequence;
+
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -64,7 +66,8 @@ public class HttpContentCompressorTest {
     @Test
     public void testEmptyContentCompression() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel(new HttpContentCompressor());
-        FullHttpRequest req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/");
+        FullHttpRequest req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET,
+             new AppendableCharSequence("/"));
         req.headers().set(Names.ACCEPT_ENCODING, "deflate");
         ch.writeInbound(req);
 

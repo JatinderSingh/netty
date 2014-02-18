@@ -28,6 +28,8 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.util.CharsetUtil;
+import io.netty.util.internal.AppendableCharSequence;
+
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -58,7 +60,7 @@ public class HttpPostRequestDecoderTest {
             contentTypeValue = "multipart/form-data;boundary=" + boundary;
         }
         final DefaultHttpRequest req = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST,
-                "http://localhost");
+                new AppendableCharSequence("http://localhost"));
 
         req.setDecoderResult(DecoderResult.SUCCESS);
         req.headers().add(HttpHeaders.Names.CONTENT_TYPE, contentTypeValue);
@@ -102,7 +104,7 @@ public class HttpPostRequestDecoderTest {
         final String boundary = "dLV9Wyq26L_-JQxk6ferf-RT153LhOO";
 
         final DefaultFullHttpRequest req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST,
-                "http://localhost");
+                new AppendableCharSequence("http://localhost"));
 
         req.setDecoderResult(DecoderResult.SUCCESS);
         req.headers().add(HttpHeaders.Names.CONTENT_TYPE, "multipart/form-data; boundary=" + boundary);
@@ -137,7 +139,7 @@ public class HttpPostRequestDecoderTest {
 
         DefaultHttpRequest aRequest = new DefaultHttpRequest(HttpVersion.HTTP_1_1,
                                                              HttpMethod.POST,
-                                                             "http://localhost");
+                                                             new AppendableCharSequence("http://localhost"));
         aRequest.headers().set(HttpHeaders.Names.CONTENT_TYPE,
                                "multipart/form-data; boundary=" + boundary);
         aRequest.headers().set(HttpHeaders.Names.TRANSFER_ENCODING,

@@ -102,7 +102,7 @@ import static io.netty.buffer.ByteBufUtil.*;
  */
 public abstract class HttpObjectDecoder extends ReplayingDecoder<HttpObjectDecoder.State> {
 
-    private final int maxInitialLineLength;
+    protected final int maxInitialLineLength;
     private final int maxHeaderSize;
     private final int maxChunkSize;
     private final boolean chunkedSupported;
@@ -201,7 +201,7 @@ public abstract class HttpObjectDecoder extends ReplayingDecoder<HttpObjectDecod
                 return;
             }
 
-            message = createMessage(initialLine);
+            message = createMessage(buffer);
             checkpoint(State.READ_HEADER);
 
         } catch (Exception e) {
@@ -563,7 +563,7 @@ public abstract class HttpObjectDecoder extends ReplayingDecoder<HttpObjectDecod
     }
 
     protected abstract boolean isDecodingRequest();
-    protected abstract HttpMessage createMessage(String[] initialLine) throws Exception;
+    protected abstract HttpMessage createMessage(ByteBuf requestBuffer) throws Exception;
     protected abstract HttpMessage createInvalidMessage();
 
     private static int getChunkSize(String hex) {

@@ -40,7 +40,7 @@ public class HttpRequestEncoder extends HttpObjectEncoder<HttpRequest> {
 
         // Add / as absolute path if no is present.
         // See http://tools.ietf.org/html/rfc2616#section-5.1.2
-        String uri = request.getUri();
+        String uri = request.getUri().toString();
 
         if (uri.length() == 0) {
             uri += SLASH;

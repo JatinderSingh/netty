@@ -25,6 +25,7 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
+import io.netty.util.internal.AppendableCharSequence;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
@@ -114,8 +115,11 @@ public class WebSocketClientHandshaker08 extends WebSocketClientHandshaker {
                     expectedChallengeResponseString));
         }
 
+        AppendableCharSequence pathchars = new AppendableCharSequence(path.length());
+        pathchars.append(path);
+
         // Format request
-        FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, path);
+        FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, pathchars);
         HttpHeaders headers = request.headers();
 
         headers.add(Names.UPGRADE, Values.WEBSOCKET.toLowerCase())

@@ -15,6 +15,8 @@
  */
 package io.netty.handler.codec.http;
 
+import io.netty.util.internal.AppendableCharSequence;
+
 /**
  * Combinate the {@link HttpRequest} and {@link FullHttpMessage}, so the request is a <i>complete</i> HTTP
  * request.
@@ -36,5 +38,5 @@ public interface FullHttpRequest extends HttpRequest, FullHttpMessage {
     FullHttpRequest setMethod(HttpMethod method);
 
     @Override
-    FullHttpRequest setUri(String uri);
+    FullHttpRequest setUri(AppendableCharSequence uri);
 }

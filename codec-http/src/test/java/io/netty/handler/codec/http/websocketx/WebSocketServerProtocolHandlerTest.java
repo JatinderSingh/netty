@@ -29,6 +29,8 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.util.ReferenceCountUtil;
+import io.netty.util.internal.AppendableCharSequence;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -65,7 +67,7 @@ public class WebSocketServerProtocolHandlerTest {
         writeUpgradeRequest(ch);
         assertEquals(SWITCHING_PROTOCOLS, ReferenceCountUtil.releaseLater(responses.remove()).getStatus());
 
-        ch.writeInbound(new DefaultFullHttpRequest(HTTP_1_1, HttpMethod.GET, "/test"));
+        ch.writeInbound(new DefaultFullHttpRequest(HTTP_1_1, HttpMethod.GET, new AppendableCharSequence("/test")));
         assertEquals(FORBIDDEN, ReferenceCountUtil.releaseLater(responses.remove()).getStatus());
     }
 

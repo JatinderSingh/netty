@@ -26,6 +26,7 @@ import io.netty.handler.codec.http.HttpHeaders.Values;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
+import io.netty.util.internal.AppendableCharSequence;
 
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -133,7 +134,8 @@ public class WebSocketClientHandshaker00 extends WebSocketClientHandshaker {
         }
 
         // Format request
-        FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, path);
+        FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET,
+                new AppendableCharSequence(path));
         HttpHeaders headers = request.headers();
         headers.add(Names.UPGRADE, Values.WEBSOCKET)
                .add(Names.CONNECTION, Values.UPGRADE)

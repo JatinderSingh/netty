@@ -22,6 +22,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.TooLongFrameException;
 import io.netty.util.CharsetUtil;
+import io.netty.util.internal.AppendableCharSequence;
+
 import org.easymock.EasyMock;
 import org.junit.Test;
 
@@ -38,7 +40,7 @@ public class HttpObjectAggregatorTest {
         EmbeddedChannel embedder = new EmbeddedChannel(aggr);
 
         HttpRequest message = new DefaultHttpRequest(HttpVersion.HTTP_1_1,
-                HttpMethod.GET, "http://localhost");
+                HttpMethod.GET, new AppendableCharSequence("http://localhost"));
         HttpHeaders.setHeader(message, "X-Test", true);
         HttpContent chunk1 = new DefaultHttpContent(Unpooled.copiedBuffer("test", CharsetUtil.US_ASCII));
         HttpContent chunk2 = new DefaultHttpContent(Unpooled.copiedBuffer("test2", CharsetUtil.US_ASCII));
@@ -77,7 +79,7 @@ public class HttpObjectAggregatorTest {
         HttpObjectAggregator aggr = new HttpObjectAggregator(1024 * 1024);
         EmbeddedChannel embedder = new EmbeddedChannel(aggr);
         HttpRequest message = new DefaultHttpRequest(HttpVersion.HTTP_1_1,
-                HttpMethod.GET, "http://localhost");
+                HttpMethod.GET, new AppendableCharSequence("http://localhost"));
         HttpHeaders.setHeader(message, "X-Test", true);
         HttpHeaders.setTransferEncodingChunked(message);
         HttpContent chunk1 = new DefaultHttpContent(Unpooled.copiedBuffer("test", CharsetUtil.US_ASCII));
@@ -108,7 +110,7 @@ public class HttpObjectAggregatorTest {
         HttpObjectAggregator aggr = new HttpObjectAggregator(4);
         EmbeddedChannel embedder = new EmbeddedChannel(aggr);
         HttpRequest message = new DefaultHttpRequest(HttpVersion.HTTP_1_1,
-                HttpMethod.GET, "http://localhost");
+                HttpMethod.GET, new AppendableCharSequence("http://localhost"));
         HttpContent chunk1 = releaseLater(new DefaultHttpContent(Unpooled.copiedBuffer("test", CharsetUtil.US_ASCII)));
         HttpContent chunk2 = releaseLater(new DefaultHttpContent(Unpooled.copiedBuffer("test2", CharsetUtil.US_ASCII)));
         HttpContent chunk3 = releaseLater(new DefaultHttpContent(Unpooled.copiedBuffer("test3", CharsetUtil.US_ASCII)));
@@ -164,7 +166,7 @@ public class HttpObjectAggregatorTest {
         EmbeddedChannel embedder = new EmbeddedChannel(aggr);
 
         HttpRequest message = new DefaultHttpRequest(HttpVersion.HTTP_1_1,
-                HttpMethod.GET, "http://localhost");
+                HttpMethod.GET, new AppendableCharSequence("http://localhost"));
         HttpHeaders.setHeader(message, "X-Test", true);
         HttpHeaders.setHeader(message, "Transfer-Encoding", "Chunked");
         HttpContent chunk1 = new DefaultHttpContent(Unpooled.copiedBuffer("test", CharsetUtil.US_ASCII));

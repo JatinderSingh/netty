@@ -18,8 +18,12 @@ package io.netty.handler.codec.rtsp;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.TooLongFrameException;
 import io.netty.handler.codec.http.DefaultHttpRequest;
+import io.netty.handler.codec.http.HttpConstants;
 import io.netty.handler.codec.http.HttpMessage;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpVersion;
+import io.netty.util.internal.AppendableCharSequence;
 
 /**
  * Decodes {@link ByteBuf}s into RTSP requests represented in
@@ -70,15 +74,48 @@ public class RtspRequestDecoder extends RtspObjectDecoder {
         super(maxInitialLineLength, maxHeaderSize, maxContentLength, validateHeaders);
     }
 
+    //max length for option/delete method
+    AppendableCharSequence method = new AppendableCharSequence(8);
+    //http protocol spec HTTP/1.1
+    AppendableCharSequence protocol = new AppendableCharSequence(10);
+    //uri
+    AppendableCharSequence uri = new AppendableCharSequence(100);
     @Override
-    protected HttpMessage createMessage(String[] initialLine) throws Exception {
-        return new DefaultHttpRequest(RtspVersions.valueOf(initialLine[2]),
-                RtspMethods.valueOf(initialLine[0]), initialLine[1], validateHeaders);
+    protected HttpMessage createMessage(ByteBuf requestBuffer) throws Exception {
+       int size = 0;
+       method.reset();
+       char current;
+        while (HttpConstants.SP != (current = (char) requestBuffer.getByte(size))) {
+           if (size < super.maxInitialLineLength) {
+              method.append(current);
+              }
+              size++;
+       }
+       uri.reset();
+       size++; //Ignore whitespace
+       while (HttpConstants.SP != (current = (char) requestBuffer.getByte(size))) {
+           if (size < super.maxInitialLineLength) {
+              uri.append(current);
+              }
+              size++;
+       }
+       protocol.reset();
+       size++; //Ignore whitespace
+       while (HttpConstants.LF != (current = (char) requestBuffer.getByte(size))) {
+           if (size < super.maxInitialLineLength) {
+              protocol.append(current);
+              }
+           size++;
+       }
+       //Optimize to use char sequence for uri
+       return new DefaultHttpRequest(HttpVersion.valueOf(protocol.toString()),
+                HttpMethod.valueOf(method.toString()), uri, validateHeaders);
     }
 
     @Override
     protected HttpMessage createInvalidMessage() {
-        return new DefaultHttpRequest(RtspVersions.RTSP_1_0, RtspMethods.OPTIONS, "/bad-request", validateHeaders);
+        return new DefaultHttpRequest(RtspVersions.RTSP_1_0, RtspMethods.OPTIONS,
+                new AppendableCharSequence("/bad-request"), validateHeaders);
     }
 
     @Override

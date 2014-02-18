@@ -32,6 +32,8 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.util.internal.AppendableCharSequence;
+
 import org.junit.Test;
 
 public class CorsHandlerTest {
@@ -169,7 +171,7 @@ public class CorsHandlerTest {
     }
 
     private static FullHttpRequest createHttpRequest(HttpMethod method) {
-        return new DefaultFullHttpRequest(HTTP_1_1, method, "/info");
+        return new DefaultFullHttpRequest(HTTP_1_1, method, new AppendableCharSequence("/info"));
     }
 
     private static class EchoHandler extends SimpleChannelInboundHandler<Object> {

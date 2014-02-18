@@ -21,6 +21,7 @@ import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
+import io.netty.util.internal.AppendableCharSequence;
 import io.netty.util.internal.StringUtil;
 import org.junit.Test;
 
@@ -35,7 +36,7 @@ public class HttpPostRequestEncoderTest {
     @Test
     public void testSingleFileUpload() throws Exception {
         DefaultFullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
-                HttpMethod.POST, "http://localhost");
+                HttpMethod.POST, new AppendableCharSequence("http://localhost"));
 
         HttpPostRequestEncoder encoder = new HttpPostRequestEncoder(request, true);
         File file1 = new File(getClass().getResource("/file-01.txt").toURI());
@@ -66,7 +67,7 @@ public class HttpPostRequestEncoderTest {
     @Test
     public void testMultiFileUploadInMixedMode() throws Exception {
         DefaultFullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
-                HttpMethod.POST, "http://localhost");
+                HttpMethod.POST, new AppendableCharSequence("http://localhost"));
 
         HttpPostRequestEncoder encoder = new HttpPostRequestEncoder(request, true);
         File file1 = new File(getClass().getResource("/file-01.txt").toURI());

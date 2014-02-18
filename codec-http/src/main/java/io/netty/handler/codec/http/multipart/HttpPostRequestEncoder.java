@@ -29,6 +29,7 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.stream.ChunkedInput;
+import io.netty.util.internal.AppendableCharSequence;
 import io.netty.util.internal.ThreadLocalRandom;
 
 import java.io.File;
@@ -1109,7 +1110,7 @@ public class HttpPostRequestEncoder implements ChunkedInput<HttpContent> {
         }
 
         @Override
-        public HttpRequest setUri(String uri) {
+        public HttpRequest setUri(AppendableCharSequence uri) {
             request.setUri(uri);
             return this;
         }
@@ -1120,7 +1121,7 @@ public class HttpPostRequestEncoder implements ChunkedInput<HttpContent> {
         }
 
         @Override
-        public String getUri() {
+        public AppendableCharSequence getUri() {
             return request.getUri();
         }
 
@@ -1165,7 +1166,7 @@ public class HttpPostRequestEncoder implements ChunkedInput<HttpContent> {
         }
 
         @Override
-        public FullHttpRequest setUri(String uri) {
+        public FullHttpRequest setUri(AppendableCharSequence uri) {
             super.setUri(uri);
             return this;
         }

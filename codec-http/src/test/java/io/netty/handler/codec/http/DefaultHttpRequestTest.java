@@ -15,6 +15,8 @@
  */
 package io.netty.handler.codec.http;
 
+import io.netty.util.internal.AppendableCharSequence;
+
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -23,7 +25,9 @@ public class DefaultHttpRequestTest {
 
     @Test
     public void testHeaderRemoval() {
-        HttpMessage m = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/");
+        AppendableCharSequence acr = new AppendableCharSequence(1);
+        acr.append('/');
+        HttpMessage m = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, acr);
         HttpHeaders h = m.headers();
 
         // Insert sample keys.

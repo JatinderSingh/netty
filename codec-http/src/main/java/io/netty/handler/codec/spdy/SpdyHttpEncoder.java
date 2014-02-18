@@ -230,7 +230,7 @@ public class SpdyHttpEncoder extends MessageToMessageEncoder<HttpObject> {
         if (httpMessage instanceof FullHttpRequest) {
             HttpRequest httpRequest = (HttpRequest) httpMessage;
             SpdyHeaders.setMethod(spdyVersion, spdySynStreamFrame, httpRequest.getMethod());
-            SpdyHeaders.setUrl(spdyVersion, spdySynStreamFrame, httpRequest.getUri());
+            SpdyHeaders.setUrl(spdyVersion, spdySynStreamFrame, httpRequest.getUri().toString());
             SpdyHeaders.setVersion(spdyVersion, spdySynStreamFrame, httpMessage.getProtocolVersion());
         }
         if (httpMessage instanceof HttpResponse) {

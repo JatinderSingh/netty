@@ -17,6 +17,8 @@ package io.netty.handler.codec.http;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.util.internal.AppendableCharSequence;
+
 import org.junit.Test;
 
 import java.nio.charset.Charset;
@@ -32,7 +34,7 @@ public class HttpRequestEncoderTest {
         HttpRequestEncoder encoder = new HttpRequestEncoder();
         ByteBuf buffer = Unpooled.buffer(64);
         encoder.encodeInitialLine(buffer, new DefaultHttpRequest(HttpVersion.HTTP_1_1,
-                HttpMethod.GET, "http://localhost"));
+                HttpMethod.GET, new AppendableCharSequence("http://localhost")));
         String req = buffer.toString(Charset.forName("US-ASCII"));
         assertEquals("GET http://localhost/ HTTP/1.1\r\n", req);
     }
@@ -42,7 +44,7 @@ public class HttpRequestEncoderTest {
         HttpRequestEncoder encoder = new HttpRequestEncoder();
         ByteBuf buffer = Unpooled.buffer(64);
         encoder.encodeInitialLine(buffer, new DefaultHttpRequest(HttpVersion.HTTP_1_1,
-                HttpMethod.GET, "http://localhost/"));
+                HttpMethod.GET, new AppendableCharSequence("http://localhost/")));
         String req = buffer.toString(Charset.forName("US-ASCII"));
         assertEquals("GET http://localhost/ HTTP/1.1\r\n", req);
     }
@@ -52,7 +54,7 @@ public class HttpRequestEncoderTest {
         HttpRequestEncoder encoder = new HttpRequestEncoder();
         ByteBuf buffer = Unpooled.buffer(64);
         encoder.encodeInitialLine(buffer, new DefaultHttpRequest(HttpVersion.HTTP_1_1,
-                HttpMethod.GET, "/"));
+                HttpMethod.GET, new AppendableCharSequence("/")));
         String req = buffer.toString(Charset.forName("US-ASCII"));
         assertEquals("GET / HTTP/1.1\r\n", req);
     }
@@ -62,7 +64,7 @@ public class HttpRequestEncoderTest {
         HttpRequestEncoder encoder = new HttpRequestEncoder();
         ByteBuf buffer = Unpooled.buffer(64);
         encoder.encodeInitialLine(buffer, new DefaultHttpRequest(HttpVersion.HTTP_1_1,
-                HttpMethod.GET, ""));
+                HttpMethod.GET, new AppendableCharSequence("")));
         String req = buffer.toString(Charset.forName("US-ASCII"));
         assertEquals("GET / HTTP/1.1\r\n", req);
     }
@@ -72,7 +74,7 @@ public class HttpRequestEncoderTest {
         HttpRequestEncoder encoder = new HttpRequestEncoder();
         ByteBuf buffer = Unpooled.buffer(64);
         encoder.encodeInitialLine(buffer, new DefaultHttpRequest(HttpVersion.HTTP_1_1,
-                HttpMethod.GET, "/?url=http://example.com"));
+                HttpMethod.GET, new AppendableCharSequence("/?url=http://example.com")));
         String req = buffer.toString(Charset.forName("US-ASCII"));
         assertEquals("GET /?url=http://example.com HTTP/1.1\r\n", req);
     }

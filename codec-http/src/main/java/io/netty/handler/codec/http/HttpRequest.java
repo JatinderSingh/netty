@@ -15,6 +15,8 @@
  */
 package io.netty.handler.codec.http;
 
+import io.netty.util.internal.AppendableCharSequence;
+
 
 /**
  * An HTTP request.
@@ -50,12 +52,12 @@ public interface HttpRequest extends HttpMessage {
      *
      * @return The URI being requested
      */
-    String getUri();
+    AppendableCharSequence getUri();
 
     /**
      *  Set the requested URI (or alternatively, path)
      */
-    HttpRequest setUri(String uri);
+    HttpRequest setUri(AppendableCharSequence uri);
 
     @Override
     HttpRequest setProtocolVersion(HttpVersion version);

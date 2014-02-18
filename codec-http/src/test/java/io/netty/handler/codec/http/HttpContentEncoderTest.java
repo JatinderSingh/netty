@@ -24,6 +24,8 @@ import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.handler.codec.http.HttpHeaders.Names;
 import io.netty.handler.codec.http.HttpHeaders.Values;
 import io.netty.util.CharsetUtil;
+import io.netty.util.internal.AppendableCharSequence;
+
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -47,7 +49,8 @@ public class HttpContentEncoderTest {
     @Test
     public void testSplitContent() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel(new TestEncoder());
-        ch.writeInbound(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/"));
+        ch.writeInbound(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET,
+              new AppendableCharSequence("/")));
 
         ch.writeOutbound(new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK));
         ch.writeOutbound(new DefaultHttpContent(Unpooled.wrappedBuffer(new byte[3])));
@@ -80,7 +83,8 @@ public class HttpContentEncoderTest {
     @Test
     public void testChunkedContent() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel(new TestEncoder());
-        ch.writeInbound(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/"));
+        ch.writeInbound(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET,
+                new AppendableCharSequence("/")));
 
         HttpResponse res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
         res.headers().set(Names.TRANSFER_ENCODING, Values.CHUNKED);
@@ -117,7 +121,8 @@ public class HttpContentEncoderTest {
     @Test
     public void testChunkedContentWithTrailingHeader() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel(new TestEncoder());
-        ch.writeInbound(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/"));
+        ch.writeInbound(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET,
+                new AppendableCharSequence("/")));
 
         HttpResponse res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
         res.headers().set(Names.TRANSFER_ENCODING, Values.CHUNKED);
@@ -157,7 +162,8 @@ public class HttpContentEncoderTest {
     @Test
     public void testFullContent() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel(new TestEncoder());
-        ch.writeInbound(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/"));
+        ch.writeInbound(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET,
+                new AppendableCharSequence("/")));
 
         FullHttpResponse res = new DefaultFullHttpResponse(
                 HttpVersion.HTTP_1_1, HttpResponseStatus.OK, Unpooled.wrappedBuffer(new byte[42]));
@@ -184,7 +190,8 @@ public class HttpContentEncoderTest {
     @Test
     public void testEmptySplitContent() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel(new TestEncoder());
-        ch.writeInbound(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/"));
+        ch.writeInbound(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET,
+                new AppendableCharSequence("/")));
 
         ch.writeOutbound(new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK));
         assertEncodedResponse(ch);
@@ -209,7 +216,8 @@ public class HttpContentEncoderTest {
     @Test
     public void testEmptyFullContent() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel(new TestEncoder());
-        ch.writeInbound(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/"));
+        ch.writeInbound(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET,
+                new AppendableCharSequence("/")));
 
         FullHttpResponse res = new DefaultFullHttpResponse(
                 HttpVersion.HTTP_1_1, HttpResponseStatus.OK, Unpooled.EMPTY_BUFFER);
@@ -233,7 +241,8 @@ public class HttpContentEncoderTest {
     @Test
     public void testEmptyFullContentWithTrailer() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel(new TestEncoder());
-        ch.writeInbound(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/"));
+        ch.writeInbound(new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET,
+                new AppendableCharSequence("/")));
 
         FullHttpResponse res = new DefaultFullHttpResponse(
                 HttpVersion.HTTP_1_1, HttpResponseStatus.OK, Unpooled.EMPTY_BUFFER);

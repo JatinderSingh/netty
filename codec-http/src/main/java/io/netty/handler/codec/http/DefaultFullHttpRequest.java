@@ -17,6 +17,7 @@ package io.netty.handler.codec.http;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.util.internal.AppendableCharSequence;
 
 /**
  * Default implementation of {@link FullHttpRequest}.
@@ -26,15 +27,16 @@ public class DefaultFullHttpRequest extends DefaultHttpRequest implements FullHt
     private final HttpHeaders trailingHeader;
     private final boolean validateHeaders;
 
-    public DefaultFullHttpRequest(HttpVersion httpVersion, HttpMethod method, String uri) {
+    public DefaultFullHttpRequest(HttpVersion httpVersion, HttpMethod method, AppendableCharSequence uri) {
         this(httpVersion, method, uri, Unpooled.buffer(0));
     }
 
-    public DefaultFullHttpRequest(HttpVersion httpVersion, HttpMethod method, String uri, ByteBuf content) {
+    public DefaultFullHttpRequest(HttpVersion httpVersion, HttpMethod method, AppendableCharSequence uri,
+        ByteBuf content) {
         this(httpVersion, method, uri, content, true);
     }
 
-    public DefaultFullHttpRequest(HttpVersion httpVersion, HttpMethod method, String uri,
+    public DefaultFullHttpRequest(HttpVersion httpVersion, HttpMethod method, AppendableCharSequence uri,
                                   ByteBuf content, boolean validateHeaders) {
         super(httpVersion, method, uri, validateHeaders);
         if (content == null) {
@@ -95,7 +97,7 @@ public class DefaultFullHttpRequest extends DefaultHttpRequest implements FullHt
     }
 
     @Override
-    public FullHttpRequest setUri(String uri) {
+    public FullHttpRequest setUri(AppendableCharSequence uri) {
         super.setUri(uri);
         return this;
     }

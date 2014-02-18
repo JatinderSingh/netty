@@ -28,6 +28,7 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
+import io.netty.util.internal.AppendableCharSequence;
 
 import java.util.HashMap;
 import java.util.List;
@@ -298,7 +299,10 @@ public class SpdyHttpDecoder extends MessageToMessageDecoder<SpdyFrame> {
         SpdyHeaders.removeUrl(spdyVersion, requestFrame);
         SpdyHeaders.removeVersion(spdyVersion, requestFrame);
 
-        FullHttpRequest req = new DefaultFullHttpRequest(httpVersion, method, url);
+        AppendableCharSequence pathchars = new AppendableCharSequence(url.length());
+        pathchars.append(url);
+
+        FullHttpRequest req = new DefaultFullHttpRequest(httpVersion, method, pathchars);
 
         // Remove the scheme header
         SpdyHeaders.removeScheme(spdyVersion, requestFrame);

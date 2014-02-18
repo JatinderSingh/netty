@@ -53,7 +53,7 @@ public class HttpInvalidMessageTest {
         assertFalse(dr.isSuccess());
         assertTrue(dr.isFailure());
         assertEquals("Good Value", req.headers().get("Good_Name"));
-        assertEquals("/maybe-something", req.getUri());
+        assertEquals("/maybe-something", req.getUri().toString());
         ensureInboundTrafficDiscarded(ch);
     }
 

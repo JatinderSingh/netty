@@ -22,6 +22,7 @@ import io.netty.handler.codec.http.HttpHeaders.Names;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpVersion;
+import io.netty.util.internal.AppendableCharSequence;
 
 import static io.netty.handler.codec.http.HttpHeaders.Values.*;
 import static io.netty.handler.codec.http.HttpVersion.*;
@@ -98,7 +99,7 @@ public class WebSocketRequestBuilder {
     }
 
     public FullHttpRequest build() {
-        FullHttpRequest req = new DefaultFullHttpRequest(httpVersion, method, uri);
+        FullHttpRequest req = new DefaultFullHttpRequest(httpVersion, method, new AppendableCharSequence(uri));
         HttpHeaders headers = req.headers();
 
         if (host != null) {
