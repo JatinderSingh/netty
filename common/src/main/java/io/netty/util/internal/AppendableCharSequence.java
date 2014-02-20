@@ -36,6 +36,7 @@ public final class AppendableCharSequence implements CharSequence, Appendable {
 
     private AppendableCharSequence(char[] chars) {
         this.chars = chars;
+        pos = chars.length;
     }
 
     @Override
