@@ -48,24 +48,16 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
 
         private final List<Object> readBuf = new ArrayList<Object>();
 
-        private void removeReadOp() {
-            SelectionKey key = selectionKey();
-            int interestOps = key.interestOps();
-            if ((interestOps & readInterestOp) != 0) {
-                // only remove readInterestOp if needed
-                key.interestOps(interestOps & ~readInterestOp);
-            }
-        }
         @Override
         public void read() {
             assert eventLoop().inEventLoop();
             final ChannelConfig config = config();
 
+            final int maxMessagesPerRead = config.getMaxMessagesPerRead();
+            final ChannelPipeline pipeline = pipeline();
+            boolean closed = false;
+            Throwable exception = null;
             try {
-                final int maxMessagesPerRead = config.getMaxMessagesPerRead();
-                final ChannelPipeline pipeline = pipeline();
-                boolean closed = false;
-                Throwable exception = null;
                 try {
                     for (;;) {
                         int localRead = doReadMessages(readBuf);
@@ -89,11 +81,12 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                 } catch (Throwable t) {
                     exception = t;
                 }
-
+                readPending = false;
                 int size = readBuf.size();
                 for (int i = 0; i < size; i ++) {
                     pipeline.fireChannelRead(readBuf.get(i));
                 }
+
                 readBuf.clear();
                 pipeline.fireChannelReadComplete();
 
@@ -113,7 +106,13 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                     }
                 }
             } finally {
-                if (!config().isAutoRead()) {
+                // Check if there is a readPending which was not processed yet.
+                // This could be for two reasons:
+                // * The user called Channel.read() or ChannelHandlerContext.read() in channelRead(...) method
+                // * The user called Channel.read() or ChannelHandlerContext.read() in channelReadComplete(...) method
+                //
+                // See https://github.com/netty/netty/issues/2254
+                if (!config.isAutoRead() && !readPending) {
                     removeReadOp();
                 }
             }

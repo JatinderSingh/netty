@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 The Netty Project
+ * Copyright 2014 The Netty Project
  *
  * The Netty Project licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -13,11 +13,19 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
+package io.netty.channel.epoll;
 
-/**
- * <p>This is an example web service client.
- * <p>To run this example, you must first start
- * {@link io.netty.example.http.websocketx.server.WebSocketServer} and
- * then {@link io.netty.example.http.websocketx.client.WebSocketClient}.
- */
-package io.netty.example.http.websocketx.client;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.testsuite.transport.TestsuitePermutation;
+import io.netty.testsuite.transport.socket.SocketFixedLengthEchoTest;
+
+import java.util.List;
+
+public class EpollSocketFixedLengthEchoTest extends SocketFixedLengthEchoTest {
+
+    @Override
+    protected List<TestsuitePermutation.BootstrapComboFactory<ServerBootstrap, Bootstrap>> newFactories() {
+        return EpollTestUtils.newFactories();
+    }
+}

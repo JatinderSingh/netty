@@ -55,21 +55,6 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
     private final class NioByteUnsafe extends AbstractNioUnsafe {
         private RecvByteBufAllocator.Handle allocHandle;
 
-        private void removeReadOp() {
-            SelectionKey key = selectionKey();
-            // Check first if the key is still valid as it may be canceled as part of the deregistration
-            // from the EventLoop
-            // See https://github.com/netty/netty/issues/2104
-            if (!key.isValid()) {
-                return;
-            }
-            int interestOps = key.interestOps();
-            if ((interestOps & readInterestOp) != 0) {
-                // only remove readInterestOp if needed
-                key.interestOps(interestOps & ~readInterestOp);
-            }
-        }
-
         private void closeOnRead(ChannelPipeline pipeline) {
             SelectionKey key = selectionKey();
             setInputShutdown();
@@ -83,9 +68,11 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             }
         }
 
-        private void handleReadException(ChannelPipeline pipeline, ByteBuf byteBuf, Throwable cause, boolean close) {
+        private void handleReadException(ChannelPipeline pipeline,
+                                         ByteBuf byteBuf, Throwable cause, boolean close) {
             if (byteBuf != null) {
                 if (byteBuf.isReadable()) {
+                    readPending = false;
                     pipeline.fireChannelRead(byteBuf);
                 } else {
                     byteBuf.release();
@@ -125,7 +112,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                         close = localReadAmount < 0;
                         break;
                     }
-
+                    readPending = false;
                     pipeline.fireChannelRead(byteBuf);
                     byteBuf = null;
 
@@ -159,7 +146,13 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             } catch (Throwable t) {
                 handleReadException(pipeline, byteBuf, t, close);
             } finally {
-                if (!config.isAutoRead()) {
+                // Check if there is a readPending which was not processed yet.
+                // This could be for two reasons:
+                // * The user called Channel.read() or ChannelHandlerContext.read() in channelRead(...) method
+                // * The user called Channel.read() or ChannelHandlerContext.read() in channelReadComplete(...) method
+                //
+                // See https://github.com/netty/netty/issues/2254
+                if (!config.isAutoRead() && !readPending) {
                     removeReadOp();
                 }
             }

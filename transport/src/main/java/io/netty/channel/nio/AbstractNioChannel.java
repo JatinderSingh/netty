@@ -23,6 +23,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.ConnectTimeoutException;
 import io.netty.channel.EventLoop;
+import io.netty.util.internal.OneTimeTask;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
@@ -148,6 +149,30 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
     protected abstract class AbstractNioUnsafe extends AbstractUnsafe implements NioUnsafe {
 
+        protected boolean readPending;
+
+        protected final void removeReadOp() {
+            SelectionKey key = selectionKey();
+            // Check first if the key is still valid as it may be canceled as part of the deregistration
+            // from the EventLoop
+            // See https://github.com/netty/netty/issues/2104
+            if (!key.isValid()) {
+                return;
+            }
+            int interestOps = key.interestOps();
+            if ((interestOps & readInterestOp) != 0) {
+                // only remove readInterestOp if needed
+                key.interestOps(interestOps & ~readInterestOp);
+            }
+        }
+
+        @Override
+        public void beginRead() {
+            // Channel.read() or ChannelHandlerContext.read() was called
+            readPending = true;
+            super.beginRead();
+        }
+
         @Override
         public SelectableChannel ch() {
             return javaChannel();
@@ -175,7 +200,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                     // Schedule connect timeout.
                     int connectTimeoutMillis = config().getConnectTimeoutMillis();
                     if (connectTimeoutMillis > 0) {
-                        connectTimeoutFuture = eventLoop().schedule(new Runnable() {
+                        connectTimeoutFuture = eventLoop().schedule(new OneTimeTask() {
                             @Override
                             public void run() {
                                 ChannelPromise connectPromise = AbstractNioChannel.this.connectPromise;

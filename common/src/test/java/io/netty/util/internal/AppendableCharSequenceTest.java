@@ -64,6 +64,13 @@ public class AppendableCharSequenceTest {
     	assertEquals(master.subSequence(0, 10).toString(), "abcdefghij");
     }
 
+    @Test
+    public void testSubSequence() {
+        AppendableCharSequence master = new AppendableCharSequence(26);
+        master.append("abcdefghijlkmonpqrstuvwxyz");
+        assertEquals(master.subSequence(0, 10).toString(), "abcdefghij");
+    }
+
     private static void testSimpleAppend0(AppendableCharSequence seq) {
         String text = "testdata";
         for (int i = 0; i < text.length(); i++) {
