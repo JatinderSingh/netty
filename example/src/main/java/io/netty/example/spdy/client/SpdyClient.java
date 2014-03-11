@@ -27,6 +27,7 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpVersion;
+import io.netty.util.internal.AppendableCharSequence;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.BlockingQueue;
@@ -97,7 +98,8 @@ public class SpdyClient {
     }
 
     public HttpRequest get() {
-        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "");
+        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET,
+        		new AppendableCharSequence(""));
         request.headers().set(HttpHeaders.Names.HOST, host);
         request.headers().set(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.GZIP);
         return request;
