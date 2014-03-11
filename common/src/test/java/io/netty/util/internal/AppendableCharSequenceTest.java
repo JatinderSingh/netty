@@ -56,13 +56,6 @@ public class AppendableCharSequenceTest {
     public void testAppendStringWithExpand() {
         testAppendString0(new AppendableCharSequence(2));
     }
-    
-    @Test
-    public void testSubSequence() {
-    	AppendableCharSequence master = new AppendableCharSequence(26);
-    	master.append("abcdefghijlkmonpqrstuvwxyz");
-    	assertEquals(master.subSequence(0, 10).toString(), "abcdefghij");
-    }
 
     @Test
     public void testSubSequence() {

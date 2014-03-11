@@ -25,7 +25,7 @@
 
   <artifactId>netty-codec-http</artifactId>
   <packaging>jar</packaging>
-  <version>4.0.16.Final-Optimized</version>
+  <version>4.0.18.Final-SNAPSHOT</version>
 
   <name>Netty/Codec/HTTP</name>
 
