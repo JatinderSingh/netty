@@ -33,17 +33,17 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>netty-codec</artifactId>
-      <version>4.0.16.Final-SNAPSHOT</version>
+      <version>4.0.18.Final-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>netty-handler</artifactId>
-      <version>4.0.16.Final-SNAPSHOT</version>
+      <version>4.0.18.Final-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>netty-common</artifactId>
-      <version>4.0.16.Final-Optimized</version>
+      <version>4.0.18.Final-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.jcraft</groupId>
