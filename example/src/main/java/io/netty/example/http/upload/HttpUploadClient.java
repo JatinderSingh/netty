@@ -37,6 +37,7 @@ import io.netty.handler.codec.http.multipart.HttpDataFactory;
 import io.netty.handler.codec.http.multipart.HttpPostRequestEncoder;
 import io.netty.handler.codec.http.multipart.HttpPostRequestEncoder.ErrorDataEncoderException;
 import io.netty.handler.codec.http.multipart.InterfaceHttpData;
+import io.netty.util.internal.AppendableCharSequence;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -184,7 +185,7 @@ public class HttpUploadClient {
         }
 
         FullHttpRequest request =
-                new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, uriGet.toASCIIString());
+                new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, new AppendableCharSequence(uriGet.toASCIIString()));
         HttpHeaders headers = request.headers();
         headers.set(HttpHeaders.Names.HOST, host);
         headers.set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
@@ -223,7 +224,7 @@ public class HttpUploadClient {
 
         // Prepare the HTTP request.
         HttpRequest request =
-                new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, uriSimple.toASCIIString());
+                new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, new AppendableCharSequence(uriSimple.toASCIIString()));
 
         // Use the PostBody encoder
         HttpPostRequestEncoder bodyRequestEncoder = null;
@@ -309,7 +310,7 @@ public class HttpUploadClient {
 
         // Prepare the HTTP request.
         HttpRequest request =
-                new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, uriFile.toASCIIString());
+                new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, new AppendableCharSequence(uriFile.toASCIIString()));
 
         // Use the PostBody encoder
         HttpPostRequestEncoder bodyRequestEncoder = null;

@@ -98,7 +98,7 @@ public class HttpUploadServerHandler extends SimpleChannelInboundHandler<HttpObj
     public void channelRead0(ChannelHandlerContext ctx, HttpObject msg) throws Exception {
         if (msg instanceof HttpRequest) {
             HttpRequest request = this.request = (HttpRequest) msg;
-            URI uri = new URI(request.getUri());
+            URI uri = new URI(request.getUri().toString());
             if (!uri.getPath().startsWith("/form")) {
                 // Write Menu
                 writeMenu(ctx);
@@ -132,7 +132,7 @@ public class HttpUploadServerHandler extends SimpleChannelInboundHandler<HttpObj
             }
             responseContent.append("\r\n\r\n");
 
-            QueryStringDecoder decoderQuery = new QueryStringDecoder(request.getUri());
+            QueryStringDecoder decoderQuery = new QueryStringDecoder(request.getUri().toString());
             Map<String, List<String>> uriAttributes = decoderQuery.parameters();
             for (Entry<String, List<String>> attr: uriAttributes.entrySet()) {
                 for (String attrVal: attr.getValue()) {

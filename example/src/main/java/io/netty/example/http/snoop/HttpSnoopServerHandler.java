@@ -81,7 +81,7 @@ public class HttpSnoopServerHandler extends SimpleChannelInboundHandler<Object> 
                 buf.append("\r\n");
             }
 
-            QueryStringDecoder queryStringDecoder = new QueryStringDecoder(request.getUri());
+            QueryStringDecoder queryStringDecoder = new QueryStringDecoder(request.getUri().toString());
             Map<String, List<String>> params = queryStringDecoder.parameters();
             if (!params.isEmpty()) {
                 for (Entry<String, List<String>> p: params.entrySet()) {

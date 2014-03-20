@@ -27,6 +27,7 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpVersion;
+import io.netty.util.internal.AppendableCharSequence;
 
 import java.net.URI;
 
@@ -74,7 +75,7 @@ public class HttpSnoopClient {
 
             // Prepare the HTTP request.
             HttpRequest request = new DefaultFullHttpRequest(
-                    HttpVersion.HTTP_1_1, HttpMethod.GET, uri.getRawPath());
+                    HttpVersion.HTTP_1_1, HttpMethod.GET, new AppendableCharSequence(uri.getRawPath()));
             request.headers().set(HttpHeaders.Names.HOST, host);
             request.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
             request.headers().set(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.GZIP);
