@@ -23,6 +23,7 @@ import io.netty.channel.EventLoop;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.UnresolvedAddressException;
 
 abstract class AbstractEpollChannel extends AbstractChannel {
     private static final ChannelMetadata DATA = new ChannelMetadata(false);
@@ -127,6 +128,12 @@ abstract class AbstractEpollChannel extends AbstractChannel {
 
     @Override
     protected abstract AbstractEpollUnsafe newUnsafe();
+
+    protected static void checkResolvable(InetSocketAddress addr) {
+        if (addr.isUnresolved()) {
+            throw new UnresolvedAddressException();
+        }
+    }
 
     protected abstract class AbstractEpollUnsafe extends AbstractUnsafe {
         protected boolean readPending;
