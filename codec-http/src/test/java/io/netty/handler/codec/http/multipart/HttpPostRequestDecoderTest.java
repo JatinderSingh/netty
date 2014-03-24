@@ -222,7 +222,7 @@ public class HttpPostRequestDecoderTest {
                 "789958999&town=789961555&town=794694050&town=794650241&town=794656286&town=" +
                 "794692081&town=794660090&town=794665227&town=794665136&town=794669931";
         DefaultHttpRequest defaultHttpRequest =
-                    new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/");
+                    new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, new AppendableCharSequence("/"));
 
         HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(defaultHttpRequest);
 
