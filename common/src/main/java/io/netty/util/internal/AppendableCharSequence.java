@@ -143,4 +143,17 @@ public final class AppendableCharSequence implements CharSequence, Appendable {
 
         return newArray;
     }
+    
+    public void bulkOperation(int start, int end, AppendableCharSequenceOperation op) {
+        if (start < 0 || end > pos || start < end) {
+            throw new IndexOutOfBoundsException();
+        } else {
+            for (int i=start; i<=end; i++)
+                op.operate(chars[i]);
+        }
+    }
+    
+    public interface AppendableCharSequenceOperation {
+        public boolean operate(char c);
+    }
 }
