@@ -26,6 +26,8 @@ import java.lang.reflect.Method;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
@@ -41,6 +43,12 @@ final class PlatformDependent0 {
     private static final long ADDRESS_FIELD_OFFSET;
 
     /**
+     * Limits the number of bytes to copy per {@link Unsafe#copyMemory(long, long, long)} to allow safepoint polling
+     * during a large copy.
+     */
+    private static final long UNSAFE_COPY_THRESHOLD = 1024L * 1024L;
+
+    /**
      * {@code true} if and only if the platform supports unaligned access.
      *
      * @see <a href="http://en.wikipedia.org/wiki/Segmentation_fault#Bus_error">Wikipedia on segfault</a>
@@ -50,7 +58,7 @@ final class PlatformDependent0 {
     static {
         boolean directBufferFreeable = false;
         try {
-            Class<?> cls = Class.forName("sun.nio.ch.DirectBuffer", false, PlatformDependent0.class.getClassLoader());
+            Class<?> cls = Class.forName("sun.nio.ch.DirectBuffer", false, getClassLoader(PlatformDependent0.class));
             Method method = cls.getMethod("cleaner");
             if ("sun.misc.Cleaner".equals(method.getReturnType().getName())) {
                 directBufferFreeable = true;
@@ -153,11 +161,9 @@ final class PlatformDependent0 {
         }
         try {
             Cleaner cleaner = ((DirectBuffer) buffer).cleaner();
-            if (cleaner == null) {
-                throw new IllegalArgumentException(
-                        "attempted to deallocate the buffer which was allocated via JNIEnv->NewDirectByteBuffer()");
+            if (cleaner != null) {
+                cleaner.clean();
             }
-            cleaner.clean();
         } catch (Throwable t) {
             // Nothing we can do here.
         }
@@ -306,11 +312,25 @@ final class PlatformDependent0 {
     }
 
     static void copyMemory(long srcAddr, long dstAddr, long length) {
-        UNSAFE.copyMemory(srcAddr, dstAddr, length);
+        //UNSAFE.copyMemory(srcAddr, dstAddr, length);
+        while (length > 0) {
+            long size = Math.min(length, UNSAFE_COPY_THRESHOLD);
+            UNSAFE.copyMemory(srcAddr, dstAddr, size);
+            length -= size;
+            srcAddr += size;
+            dstAddr += size;
+        }
     }
 
     static void copyMemory(Object src, long srcOffset, Object dst, long dstOffset, long length) {
-        UNSAFE.copyMemory(src, srcOffset, dst, dstOffset, length);
+        //UNSAFE.copyMemory(src, srcOffset, dst, dstOffset, length);
+        while (length > 0) {
+            long size = Math.min(length, UNSAFE_COPY_THRESHOLD);
+            UNSAFE.copyMemory(src, srcOffset, dst, dstOffset, size);
+            length -= size;
+            srcOffset += size;
+            dstOffset += size;
+        }
     }
 
     static <U, W> AtomicReferenceFieldUpdater<U, W> newAtomicReferenceFieldUpdater(
@@ -326,6 +346,45 @@ final class PlatformDependent0 {
     static <T> AtomicLongFieldUpdater<T> newAtomicLongFieldUpdater(
             Class<?> tclass, String fieldName) throws Exception {
         return new UnsafeAtomicLongFieldUpdater<T>(UNSAFE, tclass, fieldName);
+    }
+
+    static ClassLoader getClassLoader(final Class<?> clazz) {
+        if (System.getSecurityManager() == null) {
+            return clazz.getClassLoader();
+        } else {
+            return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+                @Override
+                public ClassLoader run() {
+                    return clazz.getClassLoader();
+                }
+            });
+        }
+    }
+
+    static ClassLoader getContextClassLoader() {
+        if (System.getSecurityManager() == null) {
+            return Thread.currentThread().getContextClassLoader();
+        } else {
+            return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+                @Override
+                public ClassLoader run() {
+                    return Thread.currentThread().getContextClassLoader();
+                }
+            });
+        }
+    }
+
+    static ClassLoader getSystemClassLoader() {
+        if (System.getSecurityManager() == null) {
+            return ClassLoader.getSystemClassLoader();
+        } else {
+            return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+                @Override
+                public ClassLoader run() {
+                    return ClassLoader.getSystemClassLoader();
+                }
+            });
+        }
     }
 
     private PlatformDependent0() {

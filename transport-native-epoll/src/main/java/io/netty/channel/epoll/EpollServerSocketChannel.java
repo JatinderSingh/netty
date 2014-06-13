@@ -20,7 +20,6 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoop;
 import io.netty.channel.socket.ServerSocketChannel;
-import io.netty.channel.socket.ServerSocketChannelConfig;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -35,7 +34,7 @@ public final class EpollServerSocketChannel extends AbstractEpollChannel impleme
     private volatile InetSocketAddress local;
 
     public EpollServerSocketChannel() {
-        super(Native.EPOLLACCEPT);
+        super(Native.socketStreamFd(), Native.EPOLLACCEPT);
         config = new EpollServerSocketChannelConfig(this);
     }
 
@@ -55,7 +54,7 @@ public final class EpollServerSocketChannel extends AbstractEpollChannel impleme
     }
 
     @Override
-    public ServerSocketChannelConfig config() {
+    public EpollServerSocketChannelConfig config() {
         return config;
     }
 
@@ -125,7 +124,7 @@ public final class EpollServerSocketChannel extends AbstractEpollChannel impleme
                 //
                 // See https://github.com/netty/netty/issues/2254
                 if (!config.isAutoRead() && !readPending) {
-                    clearEpollIn();
+                    clearEpollIn0();
                 }
             }
         }

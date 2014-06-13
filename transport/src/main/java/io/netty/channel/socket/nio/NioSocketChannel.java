@@ -32,6 +32,7 @@ import io.netty.util.internal.OneTimeTask;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -44,9 +45,9 @@ import java.nio.channels.spi.SelectorProvider;
 public class NioSocketChannel extends AbstractNioByteChannel implements io.netty.channel.socket.SocketChannel {
 
     private static final ChannelMetadata METADATA = new ChannelMetadata(false);
-    private static final SelectorProvider SELECTOR_PROVIDER = SelectorProvider.provider();
+    private static final SelectorProvider DEFAULT_SELECTOR_PROVIDER = SelectorProvider.provider();
 
-    private static SocketChannel newSocket() {
+    private static SocketChannel newSocket(SelectorProvider provider) {
         try {
             /**
              *  Use the {@link SelectorProvider} to open {@link SocketChannel} and so remove condition in
@@ -54,7 +55,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
              *
              *  See <a href="See https://github.com/netty/netty/issues/2308">#2308</a>.
              */
-            return SELECTOR_PROVIDER.openSocketChannel();
+            return provider.openSocketChannel();
         } catch (IOException e) {
             throw new ChannelException("Failed to open a socket.", e);
         }
@@ -66,7 +67,14 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
      * Create a new instance
      */
     public NioSocketChannel() {
-        this(newSocket());
+        this(newSocket(DEFAULT_SELECTOR_PROVIDER));
+    }
+
+    /**
+     * Create a new instance using the given {@link SelectorProvider}.
+     */
+    public NioSocketChannel(SelectorProvider provider) {
+        this(newSocket(provider));
     }
 
     /**
@@ -84,7 +92,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
      */
     public NioSocketChannel(Channel parent, SocketChannel socket) {
         super(parent, socket);
-        config = new DefaultSocketChannelConfig(this, socket.socket());
+        config = new NioSocketChannelConfig(this, socket.socket());
     }
 
     @Override
@@ -307,6 +315,17 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                 incompleteWrite(setOpWrite);
                 break;
             }
+        }
+    }
+
+    private final class NioSocketChannelConfig  extends DefaultSocketChannelConfig {
+        private NioSocketChannelConfig(NioSocketChannel channel, Socket javaSocket) {
+            super(channel, javaSocket);
+        }
+
+        @Override
+        protected void autoReadCleared() {
+            setReadPending(false);
         }
     }
 }

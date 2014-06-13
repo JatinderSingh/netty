@@ -272,6 +272,13 @@ public class HttpPostRequestDecoder {
             if (boundary.length != 2) {
                 throw new ErrorDataDecoderException("Needs a boundary value");
             }
+            if (boundary[1].charAt(0) == '"') {
+                String bound = boundary[1].trim();
+                int index = bound.length() - 1;
+                if (bound.charAt(index) == '"') {
+                    boundary[1] = bound.substring(1, index);
+                }
+            }
             multipartDataBoundary = "--" + boundary[1];
             isMultipart = true;
             currentStatus = MultiPartStatus.HEADERDELIMITER;
@@ -1287,9 +1294,15 @@ public class HttpPostRequestDecoder {
             while (undecodedChunk.isReadable()) {
                 byte nextByte = undecodedChunk.readByte();
                 if (nextByte == HttpConstants.CR) {
-                    nextByte = undecodedChunk.readByte();
+                    // check but do not changed readerIndex
+                    nextByte = undecodedChunk.getByte(undecodedChunk.readerIndex());
                     if (nextByte == HttpConstants.LF) {
+                        // Skip
+                        undecodedChunk.skipBytes(1);
                         return line.toString(charset);
+                    } else {
+                        // Write CR (not followed by LF)
+                        line.writeByte(HttpConstants.CR);
                     }
                 } else if (nextByte == HttpConstants.LF) {
                     return line.toString(charset);
@@ -1332,6 +1345,10 @@ public class HttpPostRequestDecoder {
                         if (nextByte == HttpConstants.LF) {
                             sao.setReadPosition(0);
                             return line.toString(charset);
+                        } else {
+                            // Write CR (not followed by LF)
+                            sao.pos--;
+                            line.writeByte(HttpConstants.CR);
                         }
                     } else {
                         line.writeByte(nextByte);
@@ -1494,6 +1511,11 @@ public class HttpPostRequestDecoder {
                         if (nextByte == HttpConstants.LF) {
                             sao.setReadPosition(0);
                             return sb.toString();
+                        } else {
+                            // error CR without LF
+                            // delimiter not found so break here !
+                            undecodedChunk.readerIndex(readerIndex);
+                            throw new NotEnoughDataDecoderException();
                         }
                     } else {
                         // error since CR must be followed by LF
@@ -1522,6 +1544,11 @@ public class HttpPostRequestDecoder {
                                         if (nextByte == HttpConstants.LF) {
                                             sao.setReadPosition(0);
                                             return sb.toString();
+                                        } else {
+                                            // error CR without LF
+                                            // delimiter not found so break here !
+                                            undecodedChunk.readerIndex(readerIndex);
+                                            throw new NotEnoughDataDecoderException();
                                         }
                                     } else {
                                         // error CR without LF
@@ -1826,7 +1853,13 @@ public class HttpPostRequestDecoder {
                                     newLine = true;
                                     index = 0;
                                     lastPosition = undecodedChunk.readerIndex() - 2;
+                                }  else {
+                                    // Unread second nextByte
+                                    lastPosition = undecodedChunk.readerIndex() - 1;
+                                    undecodedChunk.readerIndex(lastPosition);
                                 }
+                            } else {
+                                lastPosition = undecodedChunk.readerIndex() - 1;
                             }
                         } else if (nextByte == HttpConstants.LF) {
                             newLine = true;
@@ -1845,7 +1878,13 @@ public class HttpPostRequestDecoder {
                                 newLine = true;
                                 index = 0;
                                 lastPosition = undecodedChunk.readerIndex() - 2;
+                            } else {
+                                // Unread second nextByte
+                                lastPosition = undecodedChunk.readerIndex() - 1;
+                                undecodedChunk.readerIndex(lastPosition);
                             }
+                        } else {
+                            lastPosition = undecodedChunk.readerIndex() - 1;
                         }
                     } else if (nextByte == HttpConstants.LF) {
                         newLine = true;
@@ -1930,6 +1969,10 @@ public class HttpPostRequestDecoder {
                                     newLine = true;
                                     index = 0;
                                     lastrealpos = sao.pos - 2;
+                                } else {
+                                    // Unread last nextByte
+                                    sao.pos--;
+                                    lastrealpos = sao.pos;
                                 }
                             }
                         } else if (nextByte == HttpConstants.LF) {
@@ -1949,6 +1992,10 @@ public class HttpPostRequestDecoder {
                                 newLine = true;
                                 index = 0;
                                 lastrealpos = sao.pos - 2;
+                            } else {
+                                // Unread last nextByte
+                                sao.pos--;
+                                lastrealpos = sao.pos;
                             }
                         }
                     } else if (nextByte == HttpConstants.LF) {

@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -36,7 +37,8 @@ import java.util.concurrent.Callable;
  */
 public final class CorsConfig {
 
-    private final String origin;
+    private final Set<String> origins;
+    private final boolean anyOrigin;
     private final boolean enabled;
     private final Set<String> exposeHeaders;
     private final boolean allowCredentials;
@@ -45,9 +47,11 @@ public final class CorsConfig {
     private final Set<String> allowedRequestHeaders;
     private final boolean allowNullOrigin;
     private final Map<CharSequence, Callable<?>> preflightHeaders;
+    private final boolean shortCurcuit;
 
     private CorsConfig(final Builder builder) {
-        origin = builder.origin;
+        origins = new LinkedHashSet<String>(builder.origins);
+        anyOrigin = builder.anyOrigin;
         enabled = builder.enabled;
         exposeHeaders = builder.exposeHeaders;
         allowCredentials = builder.allowCredentials;
@@ -56,6 +60,7 @@ public final class CorsConfig {
         allowedRequestHeaders = builder.requestHeaders;
         allowNullOrigin = builder.allowNullOrigin;
         preflightHeaders = builder.preflightHeaders;
+        shortCurcuit = builder.shortCurcuit;
     }
 
     /**
@@ -68,12 +73,30 @@ public final class CorsConfig {
     }
 
     /**
+     * Determines whether a wildcard origin, '*', is supported.
+     *
+     * @return {@code boolean} true if any origin is allowed.
+     */
+    public boolean isAnyOriginSupported() {
+        return anyOrigin;
+    }
+
+    /**
      * Returns the allowed origin. This can either be a wildcard or an origin value.
      *
      * @return the value that will be used for the CORS response header 'Access-Control-Allow-Origin'
      */
     public String origin() {
-        return origin;
+        return origins.isEmpty() ? "*" : origins.iterator().next();
+    }
+
+    /**
+     * Returns the set of allowed origins.
+     *
+     * @return {@code Set} the allowed origins.
+     */
+    public Set<String> origins() {
+        return origins;
     }
 
     /**
@@ -193,6 +216,20 @@ public final class CorsConfig {
         return preflightHeaders;
     }
 
+    /**
+     * Determines whether a CORS request should be rejected if it's invalid before being
+     * further processing.
+     *
+     * CORS headers are set after a request is processed. This may not always be desired
+     * and this setting will check that the Origin is valid and if it is not valid no
+     * further processing will take place, and a error will be returned to the calling client.
+     *
+     * @return {@code true} if a CORS request should short-curcuit upon receiving an invalid Origin header.
+     */
+    public boolean isShortCurcuit() {
+        return shortCurcuit;
+    }
+
     private static <T> T getValue(final Callable<T> callable) {
         try {
             return callable.call();
@@ -204,7 +241,8 @@ public final class CorsConfig {
     @Override
     public String toString() {
         return StringUtil.simpleClassName(this) + "[enabled=" + enabled +
-                ", origin=" + origin +
+                ", origins=" + origins +
+                ", anyOrigin=" + anyOrigin +
                 ", exposedHeaders=" + exposeHeaders +
                 ", isCredentialsAllowed=" + allowCredentials +
                 ", maxAge=" + maxAge +
@@ -218,8 +256,8 @@ public final class CorsConfig {
      *
      * @return Builder to support method chaining.
      */
-    public static Builder anyOrigin() {
-        return new Builder("*");
+    public static Builder withAnyOrigin() {
+        return new Builder();
     }
 
     /**
@@ -228,7 +266,19 @@ public final class CorsConfig {
      * @return {@link Builder} to support method chaining.
      */
     public static Builder withOrigin(final String origin) {
+        if (origin.equals("*")) {
+            return new Builder();
+        }
         return new Builder(origin);
+    }
+
+    /**
+     * Creates a {@link Builder} instance with the specified origins.
+     *
+     * @return {@link Builder} to support method chaining.
+     */
+    public static Builder withOrigins(final String... origins) {
+        return new Builder(origins);
     }
 
     /**
@@ -236,7 +286,8 @@ public final class CorsConfig {
      */
     public static class Builder {
 
-        private final String origin;
+        private final Set<String> origins;
+        private final boolean anyOrigin;
         private boolean allowNullOrigin;
         private boolean enabled = true;
         private boolean allowCredentials;
@@ -246,14 +297,26 @@ public final class CorsConfig {
         private final Set<String> requestHeaders = new HashSet<String>();
         private final Map<CharSequence, Callable<?>> preflightHeaders = new HashMap<CharSequence, Callable<?>>();
         private boolean noPreflightHeaders;
+        private boolean shortCurcuit;
 
         /**
          * Creates a new Builder instance with the origin passed in.
          *
-         * @param origin the origin to be used for this builder.
+         * @param origins the origin to be used for this builder.
          */
-        public Builder(final String origin) {
-            this.origin = origin;
+        public Builder(final String... origins) {
+            this.origins = new LinkedHashSet<String>(Arrays.asList(origins));
+            anyOrigin = false;
+        }
+
+        /**
+         * Creates a new Builder instance allowing any origin, "*" which is the
+         * wildcard origin.
+         *
+         */
+        public Builder() {
+            anyOrigin = true;
+            origins = Collections.emptySet();
         }
 
         /**
@@ -451,6 +514,21 @@ public final class CorsConfig {
                 preflightHeaders.put(Names.CONTENT_LENGTH, new ConstantValueGenerator("0"));
             }
             return new CorsConfig(this);
+        }
+
+        /**
+         * Specifies that a CORS request should be rejected if it's invalid before being
+         * further processing.
+         *
+         * CORS headers are set after a request is processed. This may not always be desired
+         * and this setting will check that the Origin is valid and if it is not valid no
+         * further processing will take place, and a error will be returned to the calling client.
+         *
+         * @return {@link Builder} to support method chaining.
+         */
+        public Builder shortCurcuit() {
+            shortCurcuit = true;
+            return this;
         }
     }
 

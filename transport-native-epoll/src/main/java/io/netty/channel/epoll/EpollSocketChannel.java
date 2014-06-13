@@ -63,13 +63,17 @@ public final class EpollSocketChannel extends AbstractEpollChannel implements So
     private volatile boolean inputShutdown;
     private volatile boolean outputShutdown;
 
-    EpollSocketChannel(Channel parent, int fd) {
+    EpollSocketChannel(Channel parent, int fd) throws IOException {
         super(parent, fd, Native.EPOLLIN, true);
         config = new EpollSocketChannelConfig(this);
+        // Directly cache the remote and local addresses
+        // See https://github.com/netty/netty/issues/2359
+        remote = Native.remoteAddress(fd);
+        local = Native.localAddress(fd);
     }
 
     public EpollSocketChannel() {
-        super(Native.EPOLLIN);
+        super(Native.socketStreamFd(), Native.EPOLLIN);
         config = new EpollSocketChannelConfig(this);
     }
 
@@ -95,20 +99,6 @@ public final class EpollSocketChannel extends AbstractEpollChannel implements So
         this.local = Native.localAddress(fd);
     }
 
-    private void setEpollOut() {
-        if ((flags & Native.EPOLLOUT) == 0) {
-            flags |= Native.EPOLLOUT;
-            ((EpollEventLoop) eventLoop()).modify(this);
-        }
-    }
-
-    private void clearEpollOut() {
-        if ((flags & Native.EPOLLOUT) != 0) {
-            flags &= ~Native.EPOLLOUT;
-            ((EpollEventLoop) eventLoop()).modify(this);
-        }
-    }
-
     /**
      * Write bytes form the given {@link ByteBuf} to the underlying {@link java.nio.channels.Channel}.
      * @param buf           the {@link ByteBuf} from which the bytes should be written
@@ -118,12 +108,8 @@ public final class EpollSocketChannel extends AbstractEpollChannel implements So
         int readerIndex = buf.readerIndex();
         int localFlushedAmount;
         if (buf.nioBufferCount() == 1) {
-            if (buf.hasMemoryAddress()) {
-                localFlushedAmount = Native.writeAddress(fd, buf.memoryAddress(), readerIndex, buf.writerIndex());
-            } else {
-                ByteBuffer nioBuf = buf.internalNioBuffer(readerIndex, readable);
-                localFlushedAmount = Native.write(fd, nioBuf, nioBuf.position(), nioBuf.limit());
-            }
+            ByteBuffer nioBuf = buf.internalNioBuffer(readerIndex, readable);
+            localFlushedAmount = Native.write(fd, nioBuf, nioBuf.position(), nioBuf.limit());
         } else {
             // backed by more then one buffer, do a gathering write...
             ByteBuffer[] nioBufs = buf.nioBuffers();
@@ -325,7 +311,7 @@ public final class EpollSocketChannel extends AbstractEpollChannel implements So
             inputShutdown = true;
             if (isOpen()) {
                 if (Boolean.TRUE.equals(config().getOption(ChannelOption.ALLOW_HALF_CLOSURE))) {
-                    clearEpollIn();
+                    clearEpollIn0();
                     pipeline.fireUserEventTriggered(ChannelInputShutdownEvent.INSTANCE);
                 } else {
                     close(voidPromise());
@@ -567,12 +553,11 @@ public final class EpollSocketChannel extends AbstractEpollChannel implements So
             ByteBuf byteBuf = null;
             boolean close = false;
             try {
-                int byteBufCapacity = allocHandle.guess();
                 int totalReadAmount = 0;
                 for (;;) {
                     // we use a direct buffer here as the native implementations only be able
                     // to handle direct buffers.
-                    byteBuf = allocator.directBuffer(byteBufCapacity);
+                    byteBuf = allocHandle.allocate(allocator);
                     int writable = byteBuf.writableBytes();
                     int localReadAmount = doReadBytes(byteBuf);
                     if (localReadAmount <= 0) {
@@ -627,7 +612,7 @@ public final class EpollSocketChannel extends AbstractEpollChannel implements So
                 //
                 // See https://github.com/netty/netty/issues/2254
                 if (!config.isAutoRead() && !readPending) {
-                    clearEpollIn();
+                    clearEpollIn0();
                 }
             }
         }

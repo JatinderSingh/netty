@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
@@ -379,18 +378,35 @@ public final class PlatformDependent {
      * Create a new {@link Queue} which is safe to use for multiple producers (different threads) and a single
      * consumer (one thread!).
      */
-    public static Queue<Runnable> newMpscQueue() {
-        if (hasUnsafe()) {
-            return new MpscLinkedQueue();
-        } else {
-            return new ConcurrentLinkedQueue<Runnable>();
-        }
+    public static <T> Queue<T> newMpscQueue() {
+        return new MpscLinkedQueue<T>();
+    }
+
+    /**
+     * Return the {@link ClassLoader} for the given {@link Class}.
+     */
+    public static ClassLoader getClassLoader(final Class<?> clazz) {
+        return PlatformDependent0.getClassLoader(clazz);
+    }
+
+    /**
+     * Return the context {@link ClassLoader} for the current {@link Thread}.
+     */
+    public static ClassLoader getContextClassLoader() {
+        return PlatformDependent0.getContextClassLoader();
+    }
+
+    /**
+     * Return the system {@link ClassLoader}.
+     */
+    public static ClassLoader getSystemClassLoader() {
+        return PlatformDependent0.getSystemClassLoader();
     }
 
     private static boolean isAndroid0() {
         boolean android;
         try {
-            Class.forName("android.app.Application", false, ClassLoader.getSystemClassLoader());
+            Class.forName("android.app.Application", false, getSystemClassLoader());
             android = true;
         } catch (Exception e) {
             // Failed to load the class uniquely available in Android.
@@ -517,7 +533,7 @@ public final class PlatformDependent {
             }
 
             try {
-                Class.forName("java.time.Clock", false, Object.class.getClassLoader());
+                Class.forName("java.time.Clock", false, getClassLoader(Object.class));
                 javaVersion = 8;
                 break;
             } catch (Exception e) {
@@ -525,7 +541,7 @@ public final class PlatformDependent {
             }
 
             try {
-                Class.forName("java.util.concurrent.LinkedTransferQueue", false, BlockingQueue.class.getClassLoader());
+                Class.forName("java.util.concurrent.LinkedTransferQueue", false, getClassLoader(BlockingQueue.class));
                 javaVersion = 7;
                 break;
             } catch (Exception e) {
@@ -591,7 +607,7 @@ public final class PlatformDependent {
         long maxDirectMemory = 0;
         try {
             // Try to get from sun.misc.VM.maxDirectMemory() which should be most accurate.
-            Class<?> vmClass = Class.forName("sun.misc.VM", true, ClassLoader.getSystemClassLoader());
+            Class<?> vmClass = Class.forName("sun.misc.VM", true, getSystemClassLoader());
             Method m = vmClass.getDeclaredMethod("maxDirectMemory");
             maxDirectMemory = ((Number) m.invoke(null)).longValue();
         } catch (Throwable t) {
@@ -606,9 +622,9 @@ public final class PlatformDependent {
             // Now try to get the JVM option (-XX:MaxDirectMemorySize) and parse it.
             // Note that we are using reflection because Android doesn't have these classes.
             Class<?> mgmtFactoryClass = Class.forName(
-                    "java.lang.management.ManagementFactory", true, ClassLoader.getSystemClassLoader());
+                    "java.lang.management.ManagementFactory", true, getSystemClassLoader());
             Class<?> runtimeClass = Class.forName(
-                    "java.lang.management.RuntimeMXBean", true, ClassLoader.getSystemClassLoader());
+                    "java.lang.management.RuntimeMXBean", true, getSystemClassLoader());
 
             Object runtime = mgmtFactoryClass.getDeclaredMethod("getRuntimeMXBean").invoke(null);
 
@@ -662,7 +678,7 @@ public final class PlatformDependent {
         }
 
         try {
-            JavassistTypeParameterMatcherGenerator.generate(Object.class, PlatformDependent.class.getClassLoader());
+            JavassistTypeParameterMatcherGenerator.generate(Object.class, getClassLoader(PlatformDependent.class));
             logger.debug("Javassist: available");
             return true;
         } catch (Throwable t) {

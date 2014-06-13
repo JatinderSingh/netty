@@ -17,6 +17,7 @@ package io.netty.util.concurrent;
 
 import io.netty.util.Signal;
 import io.netty.util.internal.EmptyArrays;
+import io.netty.util.internal.FastThreadLocal;
 import io.netty.util.internal.PlatformDependent;
 import io.netty.util.internal.StringUtil;
 import io.netty.util.internal.logging.InternalLogger;
@@ -35,7 +36,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
             InternalLoggerFactory.getInstance(DefaultPromise.class.getName() + ".rejectedExecution");
 
     private static final int MAX_LISTENER_STACK_DEPTH = 8;
-    private static final ThreadLocal<Integer> LISTENER_STACK_DEPTH = new ThreadLocal<Integer>() {
+    private static final ThreadLocal<Integer> LISTENER_STACK_DEPTH = new FastThreadLocal<Integer>() {
         @Override
         protected Integer initialValue() {
             return 0;
@@ -624,6 +625,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
                     } finally {
                         LISTENER_STACK_DEPTH.set(stackDepth);
                     }
+                    return;
                 }
             } else {
                 LateListeners lateListeners = this.lateListeners;
@@ -632,13 +634,14 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
                 }
                 lateListeners.add(l);
                 execute(executor, lateListeners);
+                return;
             }
-        } else {
-            // Add the late listener to lateListeners in the executor thread for thread safety.
-            // We could just make LateListeners extend ConcurrentLinkedQueue, but it's an overkill considering
-            // that most asynchronous applications won't execute this code path.
-            execute(executor, new LateListenerNotifier(l));
         }
+
+        // Add the late listener to lateListeners in the executor thread for thread safety.
+        // We could just make LateListeners extend ConcurrentLinkedQueue, but it's an overkill considering
+        // that most asynchronous applications won't execute this code path.
+        execute(executor, new LateListenerNotifier(l));
     }
 
     protected static void notifyListener(
