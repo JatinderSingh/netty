@@ -18,6 +18,7 @@ package io.netty.handler.codec.socks;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ReplayingDecoder;
+import io.netty.handler.codec.socks.SocksCmdResponseDecoder.State;
 import io.netty.util.CharsetUtil;
 
 import java.util.List;
@@ -26,7 +27,7 @@ import java.util.List;
  * Decodes {@link ByteBuf}s into {@link SocksCmdResponse}.
  * Before returning SocksResponse decoder removes itself from pipeline.
  */
-public class SocksCmdResponseDecoder extends ReplayingDecoder<SocksCmdResponseDecoder.State> {
+public class SocksCmdResponseDecoder extends ReplayingDecoder<State> {
     private static final String name = "SOCKS_CMD_RESPONSE_DECODER";
 
     /**
@@ -54,16 +55,16 @@ public class SocksCmdResponseDecoder extends ReplayingDecoder<SocksCmdResponseDe
     protected void decode(ChannelHandlerContext ctx, ByteBuf byteBuf, List<Object> out) throws Exception {
         switch (state()) {
             case CHECK_PROTOCOL_VERSION: {
-                version = SocksProtocolVersion.fromByte(byteBuf.readByte());
+                version = SocksProtocolVersion.valueOf(byteBuf.readByte());
                 if (version != SocksProtocolVersion.SOCKS5) {
                     break;
                 }
                 checkpoint(State.READ_CMD_HEADER);
             }
             case READ_CMD_HEADER: {
-                cmdStatus = SocksCmdStatus.fromByte(byteBuf.readByte());
+                cmdStatus = SocksCmdStatus.valueOf(byteBuf.readByte());
                 reserved = byteBuf.readByte();
-                addressType = SocksAddressType.fromByte(byteBuf.readByte());
+                addressType = SocksAddressType.valueOf(byteBuf.readByte());
                 checkpoint(State.READ_CMD_ADDRESS);
             }
             case READ_CMD_ADDRESS: {

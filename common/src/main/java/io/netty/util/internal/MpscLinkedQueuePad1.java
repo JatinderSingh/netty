@@ -16,9 +16,10 @@
 
 package io.netty.util.internal;
 
-public final class FullyPaddedReference<T> extends LeftPaddedReference<T> {
-    private static final long serialVersionUID = -5986650399506826641L;
-    // cache line padding (must be public)
-    public transient long rp1, rp2, rp3, rp4, rp5, rp6, rp7;      // 56 bytes (excluding LeftPaddedReference.referent)
-    public transient long rpA, rpB, rpC, rpD, rpE, rpF, rpG, rpH; // 64 bytes
+abstract class MpscLinkedQueuePad1<E> extends MpscLinkedQueueHeadRef<E> {
+
+    private static final long serialVersionUID = 2886694927079691637L;
+
+    long p00, p01, p02, p03, p04, p05, p06, p07;
+    long p30, p31, p32, p33, p34, p35, p36, p37;
 }

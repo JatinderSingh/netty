@@ -18,6 +18,7 @@ package io.netty.handler.codec.socks;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ReplayingDecoder;
+import io.netty.handler.codec.socks.SocksInitRequestDecoder.State;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +27,7 @@ import java.util.List;
  * Decodes {@link ByteBuf}s into {@link SocksInitRequest}.
  * Before returning SocksRequest decoder removes itself from pipeline.
  */
-public class SocksInitRequestDecoder extends ReplayingDecoder<SocksInitRequestDecoder.State> {
+public class SocksInitRequestDecoder extends ReplayingDecoder<State> {
     private static final String name = "SOCKS_INIT_REQUEST_DECODER";
 
     /**
@@ -50,7 +51,7 @@ public class SocksInitRequestDecoder extends ReplayingDecoder<SocksInitRequestDe
     protected void decode(ChannelHandlerContext ctx, ByteBuf byteBuf, List<Object> out) throws Exception {
         switch (state()) {
             case CHECK_PROTOCOL_VERSION: {
-                version = SocksProtocolVersion.fromByte(byteBuf.readByte());
+                version = SocksProtocolVersion.valueOf(byteBuf.readByte());
                 if (version != SocksProtocolVersion.SOCKS5) {
                     break;
                 }
@@ -60,7 +61,7 @@ public class SocksInitRequestDecoder extends ReplayingDecoder<SocksInitRequestDe
                 authSchemes.clear();
                 authSchemeNum = byteBuf.readByte();
                 for (int i = 0; i < authSchemeNum; i++) {
-                    authSchemes.add(SocksAuthScheme.fromByte(byteBuf.readByte()));
+                    authSchemes.add(SocksAuthScheme.valueOf(byteBuf.readByte()));
                 }
                 msg = new SocksInitRequest(authSchemes);
                 break;

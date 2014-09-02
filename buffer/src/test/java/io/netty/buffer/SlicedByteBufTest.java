@@ -15,11 +15,13 @@
  */
 package io.netty.buffer;
 
-import static org.junit.Assert.*;
+import io.netty.util.IllegalReferenceCountException;
+import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Random;
 
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
  * Tests sliced channel buffers
@@ -93,5 +95,23 @@ public class SlicedByteBufTest extends AbstractByteBufTest {
     @Override
     public void testNioBufferExposeOnlyRegion() {
         super.testNioBufferExposeOnlyRegion();
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    @Override
+    public void testEnsureWritableAfterRelease() {
+        super.testEnsureWritableAfterRelease();
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    @Override
+    public void testWriteZeroAfterRelease() throws IOException {
+        super.testWriteZeroAfterRelease();
+    }
+
+    @Test
+    @Override
+    public void testLittleEndianWithExpand() {
+       // ignore for SlicedByteBuf
     }
 }

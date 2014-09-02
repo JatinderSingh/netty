@@ -27,6 +27,7 @@ import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -75,6 +76,7 @@ public class HttpUploadServerHandler extends SimpleChannelInboundHandler<HttpObj
             new DefaultHttpDataFactory(DefaultHttpDataFactory.MINSIZE); // Disk if size exceed
 
     private HttpPostRequestDecoder decoder;
+
     static {
         DiskFileUpload.deleteOnExitTemporaryFile = true; // should delete file
                                                          // on exit (in normal
@@ -139,7 +141,14 @@ public class HttpUploadServerHandler extends SimpleChannelInboundHandler<HttpObj
             }
             responseContent.append("\r\n\r\n");
 
-            // if GET Method: should not try to create a HttpPostRequestDecoder
+            if (request.getMethod().equals(HttpMethod.GET)) {
+                // GET Method: should not try to create a HttpPostRequestDecoder
+                // So stop here
+                responseContent.append("\r\n\r\nEND OF GET CONTENT\r\n");
+                // Not now: LastHttpContent will be sent writeResponse(ctx.channel());
+                return;
+            }
+
             try {
                 decoder = new HttpPostRequestDecoder(factory, request);
             } catch (ErrorDataDecoderException e1) {
@@ -194,6 +203,8 @@ public class HttpUploadServerHandler extends SimpleChannelInboundHandler<HttpObj
                     reset();
                 }
             }
+        } else {
+            writeResponse(ctx.channel());
         }
     }
 

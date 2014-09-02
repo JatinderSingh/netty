@@ -258,7 +258,7 @@ public class SpdyHttpEncoder extends MessageToMessageEncoder<HttpObject> {
         for (Map.Entry<String, String> entry: httpMessage.headers()) {
             spdySynStreamFrame.headers().add(entry.getKey(), entry.getValue());
         }
-        currentStreamId = spdySynStreamFrame.getStreamId();
+        currentStreamId = spdySynStreamFrame.streamId();
         spdySynStreamFrame.setLast(isLast(httpMessage));
 
         return spdySynStreamFrame;

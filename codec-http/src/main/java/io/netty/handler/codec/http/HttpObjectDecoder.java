@@ -23,6 +23,7 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.DecoderResult;
 import io.netty.handler.codec.ReplayingDecoder;
 import io.netty.handler.codec.TooLongFrameException;
+import io.netty.handler.codec.http.HttpObjectDecoder.State;
 import io.netty.util.internal.AppendableCharSequence;
 
 import java.util.List;
@@ -100,7 +101,7 @@ import static io.netty.buffer.ByteBufUtil.*;
  * To implement the decoder of such a derived protocol, extend this class and
  * implement all abstract methods properly.
  */
-public abstract class HttpObjectDecoder extends ReplayingDecoder<HttpObjectDecoder.State> {
+public abstract class HttpObjectDecoder extends ReplayingDecoder<State> {
 
     protected final int maxInitialLineLength;
     private final int maxHeaderSize;
@@ -111,7 +112,7 @@ public abstract class HttpObjectDecoder extends ReplayingDecoder<HttpObjectDecod
     private final HeaderParser headerParser = new HeaderParser(seq);
     private final LineParser lineParser = new LineParser(seq);
 
-    private HttpMessage message;
+    protected HttpMessage message;
     private long chunkSize;
     private int headerSize;
     private long contentLength = Long.MIN_VALUE;
@@ -201,7 +202,7 @@ public abstract class HttpObjectDecoder extends ReplayingDecoder<HttpObjectDecod
                 return;
             }
 
-            message = createMessage(buffer);
+            message = createMessage(initialLine);
             checkpoint(State.READ_HEADER);
 
         } catch (Exception e) {
@@ -439,7 +440,7 @@ public abstract class HttpObjectDecoder extends ReplayingDecoder<HttpObjectDecod
         checkpoint(State.SKIP_CONTROL_CHARS);
     }
 
-    private HttpMessage invalidMessage(Exception cause) {
+    protected HttpMessage invalidMessage(Exception cause) {
         checkpoint(State.BAD_MESSAGE);
         if (message != null) {
             message.setDecoderResult(DecoderResult.failure(cause));
@@ -461,7 +462,7 @@ public abstract class HttpObjectDecoder extends ReplayingDecoder<HttpObjectDecod
         return chunk;
     }
 
-    private static void skipControlCharacters(ByteBuf buffer) {
+    protected static void skipControlCharacters(ByteBuf buffer) {
         for (;;) {
             char c = (char) buffer.readUnsignedByte();
             if (!Character.isISOControl(c) &&
@@ -564,7 +565,7 @@ public abstract class HttpObjectDecoder extends ReplayingDecoder<HttpObjectDecod
     }
 
     protected abstract boolean isDecodingRequest();
-    protected abstract HttpMessage createMessage(ByteBuf requestBuffer) throws Exception;
+    protected abstract HttpMessage createMessage(String[] initialLine) throws Exception;
     protected abstract HttpMessage createInvalidMessage();
 
     private static int getChunkSize(String hex) {
@@ -641,7 +642,7 @@ public abstract class HttpObjectDecoder extends ReplayingDecoder<HttpObjectDecod
         };
     }
 
-    private static int findNonWhitespace(CharSequence sb, int offset) {
+    protected static int findNonWhitespace(CharSequence sb, int offset) {
         int result;
         for (result = offset; result < sb.length(); result ++) {
             if (!Character.isWhitespace(sb.charAt(result))) {
@@ -651,7 +652,7 @@ public abstract class HttpObjectDecoder extends ReplayingDecoder<HttpObjectDecod
         return result;
     }
 
-    private static int findWhitespace(CharSequence sb, int offset) {
+    protected static int findWhitespace(CharSequence sb, int offset) {
         int result;
         for (result = offset; result < sb.length(); result ++) {
             if (Character.isWhitespace(sb.charAt(result))) {
@@ -661,7 +662,7 @@ public abstract class HttpObjectDecoder extends ReplayingDecoder<HttpObjectDecod
         return result;
     }
 
-    private static int findEndOfString(CharSequence sb) {
+    protected static int findEndOfString(CharSequence sb) {
         int result;
         for (result = sb.length(); result > 0; result --) {
             if (!Character.isWhitespace(sb.charAt(result - 1))) {

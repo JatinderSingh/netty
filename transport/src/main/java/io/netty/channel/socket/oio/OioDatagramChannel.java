@@ -16,7 +16,6 @@
 package io.netty.channel.socket.oio;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufHolder;
 import io.netty.channel.AddressedEnvelope;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelException;
@@ -61,6 +60,12 @@ public class OioDatagramChannel extends AbstractOioMessageChannel
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(OioDatagramChannel.class);
 
     private static final ChannelMetadata METADATA = new ChannelMetadata(true);
+    private static final String EXPECTED_TYPES =
+            " (expected: " + StringUtil.simpleClassName(DatagramPacket.class) + ", " +
+            StringUtil.simpleClassName(AddressedEnvelope.class) + '<' +
+            StringUtil.simpleClassName(ByteBuf.class) + ", " +
+            StringUtil.simpleClassName(SocketAddress.class) + ">, " +
+            StringUtil.simpleClassName(ByteBuf.class) + ')';
 
     private final MulticastSocket socket;
     private final DatagramChannelConfig config;
@@ -125,9 +130,10 @@ public class OioDatagramChannel extends AbstractOioMessageChannel
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public boolean isActive() {
         return isOpen()
-            && ((config.getOption(ChannelOption.DATAGRAM_CHANNEL_ACTIVE_ON_REGISTRATION) && isRegistered())
+            && (config.getOption(ChannelOption.DATAGRAM_CHANNEL_ACTIVE_ON_REGISTRATION) && isRegistered()
                  || socket.isBound());
     }
 
@@ -208,9 +214,6 @@ public class OioDatagramChannel extends AbstractOioMessageChannel
             socket.receive(tmpPacket);
 
             InetSocketAddress remoteAddr = (InetSocketAddress) tmpPacket.getSocketAddress();
-            if (remoteAddr == null) {
-                remoteAddr = remoteAddress();
-            }
 
             int readBytes = tmpPacket.getLength();
             allocHandle.record(readBytes);
@@ -243,28 +246,19 @@ public class OioDatagramChannel extends AbstractOioMessageChannel
                 break;
             }
 
-            final Object m;
             final ByteBuf data;
             final SocketAddress remoteAddress;
             if (o instanceof AddressedEnvelope) {
                 @SuppressWarnings("unchecked")
-                AddressedEnvelope<Object, SocketAddress> envelope = (AddressedEnvelope<Object, SocketAddress>) o;
+                AddressedEnvelope<ByteBuf, SocketAddress> envelope = (AddressedEnvelope<ByteBuf, SocketAddress>) o;
                 remoteAddress = envelope.recipient();
-                m = envelope.content();
+                data = envelope.content();
             } else {
-                m = o;
+                data = (ByteBuf) o;
                 remoteAddress = null;
             }
 
-            if (m instanceof ByteBufHolder) {
-                data = ((ByteBufHolder) m).content();
-            } else if (m instanceof ByteBuf) {
-                data = (ByteBuf) m;
-            } else {
-                throw new UnsupportedOperationException("unsupported message type: " + StringUtil.simpleClassName(o));
-            }
-
-            int length = data.readableBytes();
+            final int length = data.readableBytes();
             if (remoteAddress != null) {
                 tmpPacket.setSocketAddress(remoteAddress);
             }
@@ -275,9 +269,34 @@ public class OioDatagramChannel extends AbstractOioMessageChannel
                 data.getBytes(data.readerIndex(), tmp);
                 tmpPacket.setData(tmp);
             }
-            socket.send(tmpPacket);
-            in.remove();
+            try {
+                socket.send(tmpPacket);
+                in.remove();
+            } catch (IOException e) {
+                // Continue on write error as a DatagramChannel can write to multiple remote peers
+                //
+                // See https://github.com/netty/netty/issues/2665
+                in.remove(e);
+            }
         }
+    }
+
+    @Override
+    protected Object filterOutboundMessage(Object msg) {
+        if (msg instanceof DatagramPacket || msg instanceof ByteBuf) {
+            return msg;
+        }
+
+        if (msg instanceof AddressedEnvelope) {
+            @SuppressWarnings("unchecked")
+            AddressedEnvelope<Object, SocketAddress> e = (AddressedEnvelope<Object, SocketAddress>) msg;
+            if (e.content() instanceof ByteBuf) {
+                return msg;
+            }
+        }
+
+        throw new UnsupportedOperationException(
+                "unsupported message type: " + StringUtil.simpleClassName(msg) + EXPECTED_TYPES);
     }
 
     @Override

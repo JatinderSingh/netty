@@ -18,6 +18,7 @@ package io.netty.handler.codec.socks;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ReplayingDecoder;
+import io.netty.handler.codec.socks.SocksCmdRequestDecoder.State;
 import io.netty.util.CharsetUtil;
 
 import java.util.List;
@@ -26,7 +27,7 @@ import java.util.List;
  * Decodes {@link ByteBuf}s into {@link SocksCmdRequest}.
  * Before returning SocksRequest decoder removes itself from pipeline.
  */
-public class SocksCmdRequestDecoder extends ReplayingDecoder<SocksCmdRequestDecoder.State> {
+public class SocksCmdRequestDecoder extends ReplayingDecoder<State> {
     private static final String name = "SOCKS_CMD_REQUEST_DECODER";
 
     /**
@@ -41,6 +42,7 @@ public class SocksCmdRequestDecoder extends ReplayingDecoder<SocksCmdRequestDeco
     private int fieldLength;
     private SocksCmdType cmdType;
     private SocksAddressType addressType;
+    @SuppressWarnings("UnusedDeclaration")
     private byte reserved;
     private String host;
     private int port;
@@ -54,16 +56,16 @@ public class SocksCmdRequestDecoder extends ReplayingDecoder<SocksCmdRequestDeco
     protected void decode(ChannelHandlerContext ctx, ByteBuf byteBuf, List<Object> out) throws Exception {
         switch (state()) {
             case CHECK_PROTOCOL_VERSION: {
-                version = SocksProtocolVersion.fromByte(byteBuf.readByte());
+                version = SocksProtocolVersion.valueOf(byteBuf.readByte());
                 if (version != SocksProtocolVersion.SOCKS5) {
                     break;
                 }
                 checkpoint(State.READ_CMD_HEADER);
             }
             case READ_CMD_HEADER: {
-                cmdType = SocksCmdType.fromByte(byteBuf.readByte());
+                cmdType = SocksCmdType.valueOf(byteBuf.readByte());
                 reserved = byteBuf.readByte();
-                addressType = SocksAddressType.fromByte(byteBuf.readByte());
+                addressType = SocksAddressType.valueOf(byteBuf.readByte());
                 checkpoint(State.READ_CMD_ADDRESS);
             }
             case READ_CMD_ADDRESS: {

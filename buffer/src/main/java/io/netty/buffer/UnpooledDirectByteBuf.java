@@ -411,9 +411,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
     @Override
     public ByteBuf setBytes(int index, ByteBuf src, int srcIndex, int length) {
         checkSrcIndex(index, length, srcIndex, src.capacity());
-        if (buffer.hasArray()) {
-            src.getBytes(srcIndex, buffer.array(), index + buffer.arrayOffset(), length);
-        } else if (src.nioBufferCount() > 0) {
+        if (src.nioBufferCount() > 0) {
             for (ByteBuffer bb: src.nioBuffers(srcIndex, length)) {
                 int bbLen = bb.remaining();
                 setBytes(index, bb);
@@ -537,7 +535,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         tmpBuf.clear().position(index).limit(index + length);
         try {
             return in.read(tmpNioBuf);
-        } catch (ClosedChannelException e) {
+        } catch (ClosedChannelException ignored) {
             return -1;
         }
     }
@@ -558,7 +556,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         ByteBuffer src;
         try {
             src = (ByteBuffer) buffer.duplicate().clear().position(index).limit(index + length);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException ignored) {
             throw new IndexOutOfBoundsException("Too many bytes to read - Need " + (index + length));
         }
 
@@ -567,6 +565,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
 
     @Override
     public ByteBuffer internalNioBuffer(int index, int length) {
+        checkIndex(index, length);
         return (ByteBuffer) internalNioBuffer().clear().position(index).limit(index + length);
     }
 
@@ -580,6 +579,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
 
     @Override
     public ByteBuffer nioBuffer(int index, int length) {
+        checkIndex(index, length);
         return ((ByteBuffer) buffer.duplicate().position(index).limit(index + length)).slice();
     }
 

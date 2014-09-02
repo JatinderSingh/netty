@@ -86,36 +86,10 @@ public class RtspResponseDecoder extends RtspObjectDecoder {
     //uri
     AppendableCharSequence reasonPhrase = new AppendableCharSequence(100);
     @Override
-    protected HttpMessage createMessage(ByteBuf requestBuffer) throws Exception {
-        int size = 0;
-        protocol.reset();
-        char current;
-        while (HttpConstants.SP != (current = (char) requestBuffer.getByte(size))) {
-            if (size < super.maxInitialLineLength) {
-                protocol.append(current);
-            }
-            size++;
-        }
-        code.reset();
-        size++; //Ignore whitespace
-        while (HttpConstants.SP != (current = (char) requestBuffer.getByte(size))) {
-            if (size < super.maxInitialLineLength) {
-                code.append(current);
-            }
-            size++;
-        }
-        reasonPhrase.reset();
-        size++; //Ignore whitespace
-        while (HttpConstants.LF != (current = (char) requestBuffer.getByte(size))) {
-            if (size < super.maxInitialLineLength) {
-                 reasonPhrase.append(current);
-            }
-            size++;
-        }
-        //Optimize to use char sequence for uri
-        return new DefaultHttpResponse(RtspVersions.valueOf(protocol.toString()),
-                new HttpResponseStatus(Integer.valueOf(code.toString()), reasonPhrase.toString())
-                , validateHeaders);
+    protected HttpMessage createMessage(String[] initialLine) throws Exception {
+        return new DefaultHttpResponse(
+                RtspVersions.valueOf(initialLine[0]),
+                new HttpResponseStatus(Integer.parseInt(initialLine[1]), initialLine[2]), validateHeaders);
     }
 
     @Override

@@ -16,9 +16,12 @@
 package io.netty.handler.codec.http;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.TooLongFrameException;
 import io.netty.util.internal.AppendableCharSequence;
+
+import java.util.List;
 
 
 /**
@@ -83,7 +86,34 @@ public class HttpRequestDecoder extends HttpObjectDecoder {
     AppendableCharSequence protocol = new AppendableCharSequence(10);
     //uri
     AppendableCharSequence uri = new AppendableCharSequence(100);
+    
+    
     @Override
+    protected void decode(ChannelHandlerContext ctx, ByteBuf buffer, List<Object> out) throws Exception {
+        switch (state()) {
+            case SKIP_CONTROL_CHARS: {
+                try {
+                    super.skipControlCharacters(buffer);
+                    checkpoint(State.READ_INITIAL);
+                } finally {
+                    checkpoint();
+                }
+            }
+            case READ_INITIAL: try {
+                message = createMessage(buffer);
+
+            } catch (Exception e) {
+                out.add(invalidMessage(e));
+                return;
+            }
+        }
+    }
+    
+    @Override
+    protected HttpMessage createMessage(String[] initialLine) throws Exception {
+        throw new IllegalStateException();
+    }
+    
     protected HttpMessage createMessage(ByteBuf requestBuffer) throws Exception {
         int size = 0;
         method.reset();

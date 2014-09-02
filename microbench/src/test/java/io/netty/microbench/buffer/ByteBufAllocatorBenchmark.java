@@ -20,7 +20,7 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.microbench.util.AbstractMicrobenchmark;
-import org.openjdk.jmh.annotations.GenerateMicroBenchmark;
+import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Param;
 
 import java.util.Random;
@@ -40,11 +40,13 @@ public class ByteBufAllocatorBenchmark extends AbstractMicrobenchmark {
     private static final ByteBuf[] unpooledDirectBuffers = new ByteBuf[MAX_LIVE_BUFFERS];
     private static final ByteBuf[] pooledHeapBuffers = new ByteBuf[MAX_LIVE_BUFFERS];
     private static final ByteBuf[] pooledDirectBuffers = new ByteBuf[MAX_LIVE_BUFFERS];
+    private static final ByteBuf[] defaultPooledHeapBuffers = new ByteBuf[MAX_LIVE_BUFFERS];
+    private static final ByteBuf[] defaultPooledDirectBuffers = new ByteBuf[MAX_LIVE_BUFFERS];
 
     @Param({ "00000", "00256", "01024", "04096", "16384", "65536" })
     public int size;
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public void unpooledHeapAllocAndFree() {
         int idx = rand.nextInt(unpooledHeapBuffers.length);
         ByteBuf oldBuf = unpooledHeapBuffers[idx];
@@ -54,7 +56,7 @@ public class ByteBufAllocatorBenchmark extends AbstractMicrobenchmark {
         unpooledHeapBuffers[idx] = unpooledAllocator.heapBuffer(size);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public void unpooledDirectAllocAndFree() {
         int idx = rand.nextInt(unpooledDirectBuffers.length);
         ByteBuf oldBuf = unpooledDirectBuffers[idx];
@@ -64,7 +66,7 @@ public class ByteBufAllocatorBenchmark extends AbstractMicrobenchmark {
         unpooledDirectBuffers[idx] = unpooledAllocator.directBuffer(size);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public void pooledHeapAllocAndFree() {
         int idx = rand.nextInt(pooledHeapBuffers.length);
         ByteBuf oldBuf = pooledHeapBuffers[idx];
@@ -74,7 +76,7 @@ public class ByteBufAllocatorBenchmark extends AbstractMicrobenchmark {
         pooledHeapBuffers[idx] = pooledAllocator.heapBuffer(size);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public void pooledDirectAllocAndFree() {
         int idx = rand.nextInt(pooledDirectBuffers.length);
         ByteBuf oldBuf = pooledDirectBuffers[idx];
@@ -84,15 +86,23 @@ public class ByteBufAllocatorBenchmark extends AbstractMicrobenchmark {
         pooledDirectBuffers[idx] = pooledAllocator.directBuffer(size);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public void defaultPooledHeapAllocAndFree() {
-        ByteBuf buffer = PooledByteBufAllocator.DEFAULT.heapBuffer(size);
-        buffer.release();
+        int idx = rand.nextInt(defaultPooledHeapBuffers.length);
+        ByteBuf oldBuf = defaultPooledHeapBuffers[idx];
+        if (oldBuf != null) {
+            oldBuf.release();
+        }
+        defaultPooledHeapBuffers[idx] = PooledByteBufAllocator.DEFAULT.heapBuffer(size);
     }
 
-    @GenerateMicroBenchmark
+    @Benchmark
     public void defaultPooledDirectAllocAndFree() {
-        ByteBuf buffer = PooledByteBufAllocator.DEFAULT.directBuffer(size);
-        buffer.release();
+        int idx = rand.nextInt(defaultPooledDirectBuffers.length);
+        ByteBuf oldBuf = defaultPooledDirectBuffers[idx];
+        if (oldBuf != null) {
+            oldBuf.release();
+        }
+        defaultPooledDirectBuffers[idx] = PooledByteBufAllocator.DEFAULT.directBuffer(size);
     }
 }

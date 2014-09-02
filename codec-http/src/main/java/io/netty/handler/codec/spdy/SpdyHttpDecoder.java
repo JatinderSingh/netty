@@ -40,6 +40,7 @@ import java.util.Map;
  */
 public class SpdyHttpDecoder extends MessageToMessageDecoder<SpdyFrame> {
 
+    private final boolean validateHeaders;
     private final int spdyVersion;
     private final int maxContentLength;
     private final Map<Integer, FullHttpMessage> messageMap;
@@ -53,7 +54,20 @@ public class SpdyHttpDecoder extends MessageToMessageDecoder<SpdyFrame> {
      *        a {@link TooLongFrameException} will be raised.
      */
     public SpdyHttpDecoder(SpdyVersion version, int maxContentLength) {
-        this(version, maxContentLength, new HashMap<Integer, FullHttpMessage>());
+        this(version, maxContentLength, new HashMap<Integer, FullHttpMessage>(), true);
+    }
+
+    /**
+     * Creates a new instance.
+     *
+     * @param version the protocol version
+     * @param maxContentLength the maximum length of the message content.
+     *        If the length of the message content exceeds this value,
+     *        a {@link TooLongFrameException} will be raised.
+     * @param validateHeaders {@code true} if http headers should be validated
+     */
+    public SpdyHttpDecoder(SpdyVersion version, int maxContentLength, boolean validateHeaders) {
+        this(version, maxContentLength, new HashMap<Integer, FullHttpMessage>(), validateHeaders);
     }
 
     /**
@@ -66,6 +80,21 @@ public class SpdyHttpDecoder extends MessageToMessageDecoder<SpdyFrame> {
      * @param messageMap the {@link Map} used to hold partially received messages.
      */
     protected SpdyHttpDecoder(SpdyVersion version, int maxContentLength, Map<Integer, FullHttpMessage> messageMap) {
+        this(version, maxContentLength, messageMap, true);
+    }
+
+    /**
+     * Creates a new instance with the specified parameters.
+     *
+     * @param version the protocol version
+     * @param maxContentLength the maximum length of the message content.
+     *        If the length of the message content exceeds this value,
+     *        a {@link TooLongFrameException} will be raised.
+     * @param messageMap the {@link Map} used to hold partially received messages.
+     * @param validateHeaders {@code true} if http headers should be validated
+     */
+    protected SpdyHttpDecoder(SpdyVersion version, int maxContentLength, Map<Integer,
+            FullHttpMessage> messageMap, boolean validateHeaders) {
         if (version == null) {
             throw new NullPointerException("version");
         }
@@ -76,6 +105,7 @@ public class SpdyHttpDecoder extends MessageToMessageDecoder<SpdyFrame> {
         spdyVersion = version.getVersion();
         this.maxContentLength = maxContentLength;
         this.messageMap = messageMap;
+        this.validateHeaders = validateHeaders;
     }
 
     protected FullHttpMessage putMessage(int streamId, FullHttpMessage message) {
@@ -97,11 +127,11 @@ public class SpdyHttpDecoder extends MessageToMessageDecoder<SpdyFrame> {
 
             // HTTP requests/responses are mapped one-to-one to SPDY streams.
             SpdySynStreamFrame spdySynStreamFrame = (SpdySynStreamFrame) msg;
-            int streamId = spdySynStreamFrame.getStreamId();
+            int streamId = spdySynStreamFrame.streamId();
 
             if (SpdyCodecUtil.isServerId(streamId)) {
                 // SYN_STREAM frames initiated by the server are pushed resources
-                int associatedToStreamId = spdySynStreamFrame.getAssociatedToStreamId();
+                int associatedToStreamId = spdySynStreamFrame.associatedStreamId();
 
                 // If a client receives a SYN_STREAM with an Associated-To-Stream-ID of 0
                 // it must reply with a RST_STREAM with error code INVALID_STREAM
@@ -134,12 +164,12 @@ public class SpdyHttpDecoder extends MessageToMessageDecoder<SpdyFrame> {
 
                 try {
                     FullHttpResponse httpResponseWithEntity =
-                            createHttpResponse(spdyVersion, spdySynStreamFrame);
+                            createHttpResponse(ctx, spdyVersion, spdySynStreamFrame, validateHeaders);
 
                     // Set the Stream-ID, Associated-To-Stream-ID, Priority, and URL as headers
                     SpdyHttpHeaders.setStreamId(httpResponseWithEntity, streamId);
                     SpdyHttpHeaders.setAssociatedToStreamId(httpResponseWithEntity, associatedToStreamId);
-                    SpdyHttpHeaders.setPriority(httpResponseWithEntity, spdySynStreamFrame.getPriority());
+                    SpdyHttpHeaders.setPriority(httpResponseWithEntity, spdySynStreamFrame.priority());
                     SpdyHttpHeaders.setUrl(httpResponseWithEntity, URL);
 
                     if (spdySynStreamFrame.isLast()) {
@@ -197,7 +227,7 @@ public class SpdyHttpDecoder extends MessageToMessageDecoder<SpdyFrame> {
         } else if (msg instanceof SpdySynReplyFrame) {
 
             SpdySynReplyFrame spdySynReplyFrame = (SpdySynReplyFrame) msg;
-            int streamId = spdySynReplyFrame.getStreamId();
+            int streamId = spdySynReplyFrame.streamId();
 
             // If a client receives a SYN_REPLY with a truncated header block,
             // reply with a RST_STREAM frame with error code INTERNAL_ERROR.
@@ -209,7 +239,8 @@ public class SpdyHttpDecoder extends MessageToMessageDecoder<SpdyFrame> {
             }
 
             try {
-                FullHttpResponse httpResponseWithEntity = createHttpResponse(spdyVersion, spdySynReplyFrame);
+                FullHttpResponse httpResponseWithEntity =
+                        createHttpResponse(ctx, spdyVersion, spdySynReplyFrame, validateHeaders);
 
                 // Set the Stream-ID as a header
                 SpdyHttpHeaders.setStreamId(httpResponseWithEntity, streamId);
@@ -232,7 +263,7 @@ public class SpdyHttpDecoder extends MessageToMessageDecoder<SpdyFrame> {
         } else if (msg instanceof SpdyHeadersFrame) {
 
             SpdyHeadersFrame spdyHeadersFrame = (SpdyHeadersFrame) msg;
-            int streamId = spdyHeadersFrame.getStreamId();
+            int streamId = spdyHeadersFrame.streamId();
             FullHttpMessage fullHttpMessage = getMessage(streamId);
 
             // If message is not in map discard HEADERS frame.
@@ -256,7 +287,7 @@ public class SpdyHttpDecoder extends MessageToMessageDecoder<SpdyFrame> {
         } else if (msg instanceof SpdyDataFrame) {
 
             SpdyDataFrame spdyDataFrame = (SpdyDataFrame) msg;
-            int streamId = spdyDataFrame.getStreamId();
+            int streamId = spdyDataFrame.streamId();
             FullHttpMessage fullHttpMessage = getMessage(streamId);
 
             // If message is not in map discard Data Frame.
@@ -284,7 +315,7 @@ public class SpdyHttpDecoder extends MessageToMessageDecoder<SpdyFrame> {
         } else if (msg instanceof SpdyRstStreamFrame) {
 
             SpdyRstStreamFrame spdyRstStreamFrame = (SpdyRstStreamFrame) msg;
-            int streamId = spdyRstStreamFrame.getStreamId();
+            int streamId = spdyRstStreamFrame.streamId();
             removeMessage(streamId);
         }
     }
@@ -292,6 +323,7 @@ public class SpdyHttpDecoder extends MessageToMessageDecoder<SpdyFrame> {
     private static FullHttpRequest createHttpRequest(int spdyVersion, SpdyHeadersFrame requestFrame)
             throws Exception {
         // Create the first line of the request from the name/value pairs
+        SpdyHeaders headers     = requestFrame.headers();
         HttpMethod  method      = SpdyHeaders.getMethod(spdyVersion, requestFrame);
         String      url         = SpdyHeaders.getUrl(spdyVersion, requestFrame);
         HttpVersion httpVersion = SpdyHeaders.getVersion(spdyVersion, requestFrame);
@@ -307,12 +339,10 @@ public class SpdyHttpDecoder extends MessageToMessageDecoder<SpdyFrame> {
         // Remove the scheme header
         SpdyHeaders.removeScheme(spdyVersion, requestFrame);
 
-        if (spdyVersion >= 3) {
-            // Replace the SPDY host header with the HTTP host header
-            String host = SpdyHeaders.getHost(requestFrame);
-            SpdyHeaders.removeHost(requestFrame);
-            HttpHeaders.setHost(req, host);
-        }
+        // Replace the SPDY host header with the HTTP host header
+        String host = headers.get(SpdyHeaders.HttpNames.HOST);
+        headers.remove(SpdyHeaders.HttpNames.HOST);
+        req.headers().set(HttpHeaders.Names.HOST, host);
 
         for (Map.Entry<String, String> e: requestFrame.headers()) {
             req.headers().add(e.getKey(), e.getValue());
@@ -327,15 +357,17 @@ public class SpdyHttpDecoder extends MessageToMessageDecoder<SpdyFrame> {
         return req;
     }
 
-    private static FullHttpResponse createHttpResponse(int spdyVersion, SpdyHeadersFrame responseFrame)
-            throws Exception {
+    private static FullHttpResponse createHttpResponse(ChannelHandlerContext ctx, int spdyVersion,
+                                                       SpdyHeadersFrame responseFrame,
+                                                       boolean validateHeaders) throws Exception {
+
         // Create the first line of the response from the name/value pairs
         HttpResponseStatus status = SpdyHeaders.getStatus(spdyVersion, responseFrame);
         HttpVersion version = SpdyHeaders.getVersion(spdyVersion, responseFrame);
         SpdyHeaders.removeStatus(spdyVersion, responseFrame);
         SpdyHeaders.removeVersion(spdyVersion, responseFrame);
 
-        FullHttpResponse res = new DefaultFullHttpResponse(version, status);
+        FullHttpResponse res = new DefaultFullHttpResponse(version, status, ctx.alloc().buffer(), validateHeaders);
         for (Map.Entry<String, String> e: responseFrame.headers()) {
             res.headers().add(e.getKey(), e.getValue());
         }

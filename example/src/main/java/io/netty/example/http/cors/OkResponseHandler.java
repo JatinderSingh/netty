@@ -28,9 +28,8 @@ import io.netty.handler.codec.http.HttpVersion;
  * response for any request.
  */
 public class OkResponseHandler extends SimpleChannelInboundHandler<Object> {
-
     @Override
-    public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead0(ChannelHandlerContext ctx, Object msg) {
         final FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
         response.headers().set("custom-response-header", "Some value");
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);

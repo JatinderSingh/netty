@@ -34,6 +34,7 @@ import io.netty.channel.sctp.SctpMessage;
 import io.netty.channel.sctp.SctpNotificationHandler;
 import io.netty.channel.sctp.SctpServerChannel;
 import io.netty.util.internal.PlatformDependent;
+import io.netty.util.internal.StringUtil;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
@@ -64,6 +65,7 @@ public class OioSctpChannel extends AbstractOioMessageChannel
             InternalLoggerFactory.getInstance(OioSctpChannel.class);
 
     private static final ChannelMetadata METADATA = new ChannelMetadata(false);
+    private static final String EXPECTED_TYPE = " (expected: " + StringUtil.simpleClassName(SctpMessage.class) + ')';
 
     private final SctpChannel ch;
     private final SctpChannelConfig config;
@@ -274,10 +276,20 @@ public class OioSctpChannel extends AbstractOioMessageChannel
     }
 
     @Override
+    protected Object filterOutboundMessage(Object msg) throws Exception {
+        if (msg instanceof SctpMessage) {
+            return msg;
+        }
+
+        throw new UnsupportedOperationException(
+                "unsupported message type: " + StringUtil.simpleClassName(msg) + EXPECTED_TYPE);
+    }
+
+    @Override
     public Association association() {
         try {
             return ch.association();
-        } catch (IOException e) {
+        } catch (IOException ignored) {
             return null;
         }
     }
@@ -309,7 +321,7 @@ public class OioSctpChannel extends AbstractOioMessageChannel
                 addresses.add((InetSocketAddress) socketAddress);
             }
             return addresses;
-        } catch (Throwable t) {
+        } catch (Throwable ignored) {
             return Collections.emptySet();
         }
     }
@@ -336,7 +348,7 @@ public class OioSctpChannel extends AbstractOioMessageChannel
                 addresses.add((InetSocketAddress) socketAddress);
             }
             return addresses;
-        } catch (Throwable t) {
+        } catch (Throwable ignored) {
             return Collections.emptySet();
         }
     }

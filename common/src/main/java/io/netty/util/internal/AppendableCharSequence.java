@@ -56,6 +56,16 @@ public final class AppendableCharSequence implements CharSequence, Appendable {
     public AppendableCharSequence subSequence(int start, int end) {
         return new AppendableCharSequence(Arrays.copyOfRange(chars, start, end));
     }
+    
+    public AppendableCharSequence truncateSelf(int start, int end) {
+        if (start < 0 || end > pos) {
+            throw new IllegalStateException();
+        } else {
+            System.arraycopy(chars, start, chars, 0, end-start);
+            pos = end-start;
+        }
+        return this;
+    }
 
     @Override
     public AppendableCharSequence append(char c) {

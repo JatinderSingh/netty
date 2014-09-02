@@ -58,7 +58,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * //author Doug Lea
  */
 @SuppressWarnings("all")
-public class ThreadLocalRandom extends Random {
+public final class ThreadLocalRandom extends Random {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(ThreadLocalRandom.class);
 
@@ -156,6 +156,7 @@ public class ThreadLocalRandom extends Random {
     }
 
     private static long newSeed() {
+        final long startTime = System.nanoTime();
         for (;;) {
             final long current = seedUniquifier.get();
             final long actualCurrent = current != 0? current : getInitialSeedUniquifier();
@@ -165,7 +166,9 @@ public class ThreadLocalRandom extends Random {
 
             if (seedUniquifier.compareAndSet(current, next)) {
                 if (current == 0 && logger.isDebugEnabled()) {
-                    logger.debug(String.format("-Dio.netty.initialSeedUniquifier: 0x%016x", actualCurrent));
+                    logger.debug(String.format(
+                            "-Dio.netty.initialSeedUniquifier: 0x%016x (took %d ms)",
+                            actualCurrent, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)));
                 }
                 return next ^ System.nanoTime();
             }
@@ -204,22 +207,12 @@ public class ThreadLocalRandom extends Random {
     }
 
     /**
-     * The actual ThreadLocal
-     */
-    private static final ThreadLocal<ThreadLocalRandom> localRandom =
-            new ThreadLocal<ThreadLocalRandom>() {
-                protected ThreadLocalRandom initialValue() {
-                    return new ThreadLocalRandom();
-                }
-            };
-
-    /**
      * Returns the current thread's {@code ThreadLocalRandom}.
      *
      * @return the current thread's {@code ThreadLocalRandom}
      */
     public static ThreadLocalRandom current() {
-        return localRandom.get();
+        return InternalThreadLocalMap.get().random();
     }
 
     /**

@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-parent</artifactId>
-    <version>4.0.21.Final-SNAPSHOT-AppendableCharSequence</version>
+    <version>4.0.24.Final-SNAPSHOT-AppendableCharSequence</version>
   </parent>
   <artifactId>netty-transport-native-epoll</artifactId>
 
@@ -47,6 +47,12 @@
       <artifactId>netty-testsuite</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>netty-tcnative</artifactId>
+      <classifier>${os.detected.classifier}</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>

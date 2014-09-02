@@ -355,7 +355,7 @@ public class UnpooledUnsafeDirectByteBuf extends AbstractReferenceCountedByteBuf
         if (length != 0) {
             if (src.hasMemoryAddress()) {
                 PlatformDependent.copyMemory(src.memoryAddress() + srcIndex, addr(index), length);
-            } else if (buffer.hasArray()) {
+            } else if (src.hasArray()) {
                 PlatformDependent.copyMemory(src.array(), src.arrayOffset() + srcIndex, addr(index), length);
             } else {
                 src.getBytes(srcIndex, this, index, length);
@@ -444,7 +444,7 @@ public class UnpooledUnsafeDirectByteBuf extends AbstractReferenceCountedByteBuf
         tmpBuf.clear().position(index).limit(index + length);
         try {
             return in.read(tmpBuf);
-        } catch (ClosedChannelException e) {
+        } catch (ClosedChannelException ignored) {
             return -1;
         }
     }
@@ -476,6 +476,7 @@ public class UnpooledUnsafeDirectByteBuf extends AbstractReferenceCountedByteBuf
 
     @Override
     public ByteBuffer internalNioBuffer(int index, int length) {
+        checkIndex(index, length);
         return (ByteBuffer) internalNioBuffer().clear().position(index).limit(index + length);
     }
 
@@ -489,6 +490,7 @@ public class UnpooledUnsafeDirectByteBuf extends AbstractReferenceCountedByteBuf
 
     @Override
     public ByteBuffer nioBuffer(int index, int length) {
+        checkIndex(index, length);
         return ((ByteBuffer) buffer.duplicate().position(index).limit(index + length)).slice();
     }
 
@@ -517,6 +519,6 @@ public class UnpooledUnsafeDirectByteBuf extends AbstractReferenceCountedByteBuf
 
     @Override
     protected SwappedByteBuf newSwappedByteBuf() {
-        return new UnsafeDirectSwappedByteBuf(this, memoryAddress);
+        return new UnsafeDirectSwappedByteBuf(this);
     }
 }

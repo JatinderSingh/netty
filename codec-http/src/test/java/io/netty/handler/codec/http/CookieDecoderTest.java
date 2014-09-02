@@ -15,7 +15,7 @@
  */
 package io.netty.handler.codec.http;
 
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -23,7 +23,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.TimeZone;
 
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 public class CookieDecoderTest {
     @Test

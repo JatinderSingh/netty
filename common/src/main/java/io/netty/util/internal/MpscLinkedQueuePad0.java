@@ -16,11 +16,7 @@
 
 package io.netty.util.internal;
 
-import java.io.Serializable;
-
-abstract class LeftPadding implements Serializable {
-    private static final long serialVersionUID = -9129166504419549394L;
-    // cache line padding (must be public)
-    public transient long lp1, lp2, lp3, lp4, lp5, lp6;           // 48 bytes (excluding 16-byte object header)
-    public transient long lpA, lpB, lpC, lpD, lpE, lpF, lpG, lpH; // 64 bytes
+abstract class MpscLinkedQueuePad0<E> {
+    long p00, p01, p02, p03, p04, p05, p06, p07;
+    long p30, p31, p32, p33, p34, p35, p36, p37;
 }

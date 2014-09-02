@@ -31,10 +31,10 @@ public class ChannelOutboundBufferTest {
     @Test
     public void testEmptyNioBuffers() {
         TestChannel channel = new TestChannel();
-        ChannelOutboundBuffer buffer = ChannelOutboundBuffer.newInstance(channel);
+        ChannelOutboundBuffer buffer = new ChannelOutboundBuffer(channel);
         assertEquals(0, buffer.nioBufferCount());
         ByteBuffer[] buffers = buffer.nioBuffers();
-        assertEquals(32, buffers.length);
+        assertNotNull(buffers);
         for (ByteBuffer b: buffers) {
             assertNull(b);
         }
@@ -46,28 +46,18 @@ public class ChannelOutboundBufferTest {
     public void testNioBuffersSingleBacked() {
         TestChannel channel = new TestChannel();
 
-        ChannelOutboundBuffer buffer = ChannelOutboundBuffer.newInstance(channel);
-        assertEquals(0, buffer.nioBufferCount());
-        ByteBuffer[] buffers = buffer.nioBuffers();
-        assertEquals(32, buffers.length);
-        for (ByteBuffer b: buffers) {
-            assertNull(b);
-        }
+        ChannelOutboundBuffer buffer = new ChannelOutboundBuffer(channel);
         assertEquals(0, buffer.nioBufferCount());
 
         ByteBuf buf = copiedBuffer("buf1", CharsetUtil.US_ASCII);
         ByteBuffer nioBuf = buf.internalNioBuffer(0, buf.readableBytes());
-        buffer.addMessage(buf, channel.voidPromise());
-        buffers = buffer.nioBuffers();
+        buffer.addMessage(buf, buf.readableBytes(), channel.voidPromise());
         assertEquals("Should still be 0 as not flushed yet", 0, buffer.nioBufferCount());
-        for (ByteBuffer b: buffers) {
-            assertNull(b);
-        }
         buffer.addFlush();
-        buffers = buffer.nioBuffers();
-        assertEquals(32, buffers.length);
+        ByteBuffer[] buffers = buffer.nioBuffers();
+        assertNotNull(buffers);
         assertEquals("Should still be 0 as not flushed yet", 1, buffer.nioBufferCount());
-        for (int i = 0;  i < buffers.length; i++) {
+        for (int i = 0;  i < buffer.nioBufferCount(); i++) {
             if (i == 0) {
                 assertEquals(buffers[i], nioBuf);
             } else {
@@ -81,22 +71,17 @@ public class ChannelOutboundBufferTest {
     public void testNioBuffersExpand() {
         TestChannel channel = new TestChannel();
 
-        ChannelOutboundBuffer buffer = ChannelOutboundBuffer.newInstance(channel);
+        ChannelOutboundBuffer buffer = new ChannelOutboundBuffer(channel);
 
         ByteBuf buf = directBuffer().writeBytes("buf1".getBytes(CharsetUtil.US_ASCII));
         for (int i = 0; i < 64; i++) {
-            buffer.addMessage(buf.copy(), channel.voidPromise());
+            buffer.addMessage(buf.copy(), buf.readableBytes(), channel.voidPromise());
         }
-        ByteBuffer[] buffers = buffer.nioBuffers();
         assertEquals("Should still be 0 as not flushed yet", 0, buffer.nioBufferCount());
-        for (ByteBuffer b: buffers) {
-            assertNull(b);
-        }
         buffer.addFlush();
-        buffers = buffer.nioBuffers();
-        assertEquals(64, buffers.length);
+        ByteBuffer[] buffers = buffer.nioBuffers();
         assertEquals(64, buffer.nioBufferCount());
-        for (int i = 0;  i < buffers.length; i++) {
+        for (int i = 0;  i < buffer.nioBufferCount(); i++) {
             assertEquals(buffers[i], buf.internalNioBuffer(0, buf.readableBytes()));
         }
         release(buffer);
@@ -107,25 +92,20 @@ public class ChannelOutboundBufferTest {
     public void testNioBuffersExpand2() {
         TestChannel channel = new TestChannel();
 
-        ChannelOutboundBuffer buffer = ChannelOutboundBuffer.newInstance(channel);
+        ChannelOutboundBuffer buffer = new ChannelOutboundBuffer(channel);
 
         CompositeByteBuf comp = compositeBuffer(256);
         ByteBuf buf = directBuffer().writeBytes("buf1".getBytes(CharsetUtil.US_ASCII));
         for (int i = 0; i < 65; i++) {
             comp.addComponent(buf.copy()).writerIndex(comp.writerIndex() + buf.readableBytes());
         }
-        buffer.addMessage(comp, channel.voidPromise());
+        buffer.addMessage(comp, comp.readableBytes(), channel.voidPromise());
 
-        ByteBuffer[] buffers = buffer.nioBuffers();
         assertEquals("Should still be 0 as not flushed yet", 0, buffer.nioBufferCount());
-        for (ByteBuffer b: buffers) {
-            assertNull(b);
-        }
         buffer.addFlush();
-        buffers = buffer.nioBuffers();
-        assertEquals(128, buffers.length);
+        ByteBuffer[] buffers = buffer.nioBuffers();
         assertEquals(65, buffer.nioBufferCount());
-        for (int i = 0;  i < buffers.length; i++) {
+        for (int i = 0;  i < buffer.nioBufferCount(); i++) {
             if (i < 65) {
                 assertEquals(buffers[i], buf.internalNioBuffer(0, buf.readableBytes()));
             } else {

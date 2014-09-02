@@ -38,12 +38,12 @@ final class SpdyHeaderBlockZlibDecoder extends SpdyHeaderBlockRawDecoder {
     }
 
     @Override
-    void decode(ByteBuf headerBlock, SpdyHeadersFrame frame) throws Exception {
+    void decode(ByteBufAllocator alloc, ByteBuf headerBlock, SpdyHeadersFrame frame) throws Exception {
         int len = setInput(headerBlock);
 
         int numBytes;
         do {
-            numBytes = decompress(headerBlock.alloc(), frame);
+            numBytes = decompress(alloc, frame);
         } while (numBytes > 0);
 
         // z_stream has an internal 64-bit hold buffer
@@ -79,14 +79,14 @@ final class SpdyHeaderBlockZlibDecoder extends SpdyHeaderBlockRawDecoder {
             if (numBytes == 0 && decompressor.needsDictionary()) {
                 try {
                     decompressor.setDictionary(SPDY_DICT);
-                } catch (IllegalArgumentException e) {
+                } catch (IllegalArgumentException ignored) {
                     throw INVALID_HEADER_BLOCK;
                 }
                 numBytes = decompressor.inflate(out, off, decompressed.writableBytes());
             }
             if (frame != null) {
                 decompressed.writerIndex(decompressed.writerIndex() + numBytes);
-                super.decodeHeaderBlock(decompressed, frame);
+                decodeHeaderBlock(decompressed, frame);
                 decompressed.discardReadBytes();
             }
 

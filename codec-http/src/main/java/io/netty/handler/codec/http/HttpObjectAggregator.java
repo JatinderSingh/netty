@@ -15,7 +15,9 @@
  */
 package io.netty.handler.codec.http;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.DefaultByteBufHolder;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -25,6 +27,7 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.DecoderResult;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.TooLongFrameException;
+import io.netty.util.internal.AppendableCharSequence;
 
 import java.util.List;
 
@@ -55,7 +58,7 @@ public class HttpObjectAggregator extends MessageToMessageDecoder<HttpObject> {
             new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE, Unpooled.EMPTY_BUFFER);
 
     private final int maxContentLength;
-    private FullHttpMessage currentMessage;
+    private AggregatedFullHttpMessage currentMessage;
     private boolean tooLongFrameFound;
 
     private int maxCumulationBufferComponents = DEFAULT_MAX_COMPOSITEBUFFER_COMPONENTS;
@@ -112,7 +115,7 @@ public class HttpObjectAggregator extends MessageToMessageDecoder<HttpObject> {
 
     @Override
     protected void decode(final ChannelHandlerContext ctx, HttpObject msg, List<Object> out) throws Exception {
-        FullHttpMessage currentMessage = this.currentMessage;
+        AggregatedFullHttpMessage currentMessage = this.currentMessage;
 
         if (msg instanceof HttpMessage) {
             tooLongFrameFound = false;
@@ -144,18 +147,16 @@ public class HttpObjectAggregator extends MessageToMessageDecoder<HttpObject> {
             }
             if (msg instanceof HttpRequest) {
                 HttpRequest header = (HttpRequest) msg;
-                this.currentMessage = currentMessage = new DefaultFullHttpRequest(header.getProtocolVersion(),
-                        header.getMethod(), header.getUri(), Unpooled.compositeBuffer(maxCumulationBufferComponents));
+                this.currentMessage = currentMessage = new AggregatedFullHttpRequest(
+                        header, ctx.alloc().compositeBuffer(maxCumulationBufferComponents), null);
             } else if (msg instanceof HttpResponse) {
                 HttpResponse header = (HttpResponse) msg;
-                this.currentMessage = currentMessage = new DefaultFullHttpResponse(
-                        header.getProtocolVersion(), header.getStatus(),
-                        Unpooled.compositeBuffer(maxCumulationBufferComponents));
+                this.currentMessage = currentMessage = new AggregatedFullHttpResponse(
+                        header,
+                        Unpooled.compositeBuffer(maxCumulationBufferComponents), null);
             } else {
                 throw new Error();
             }
-
-            currentMessage.headers().set(m.headers());
 
             // A streamed message - initialize the cumulative buffer, and wait for incoming chunks.
             removeTransferEncodingChunked(currentMessage);
@@ -207,7 +208,9 @@ public class HttpObjectAggregator extends MessageToMessageDecoder<HttpObject> {
                 // Merge trailing headers into the message.
                 if (chunk instanceof LastHttpContent) {
                     LastHttpContent trailer = (LastHttpContent) chunk;
-                    currentMessage.headers().add(trailer.trailingHeaders());
+                    currentMessage.setTrailingHeaders(trailer.trailingHeaders());
+                } else {
+                    currentMessage.setTrailingHeaders(new DefaultHttpHeaders());
                 }
 
                 // Set the 'Content-Length' header.
@@ -257,17 +260,197 @@ public class HttpObjectAggregator extends MessageToMessageDecoder<HttpObject> {
 
         FullHttpMessage fullMsg;
         if (msg instanceof HttpRequest) {
-            HttpRequest req = (HttpRequest) msg;
-            fullMsg = new DefaultFullHttpRequest(
-                    req.getProtocolVersion(), req.getMethod(), req.getUri(), Unpooled.EMPTY_BUFFER, false);
+            fullMsg = new AggregatedFullHttpRequest(
+                    (HttpRequest) msg, Unpooled.EMPTY_BUFFER, new DefaultHttpHeaders());
         } else if (msg instanceof HttpResponse) {
-            HttpResponse res = (HttpResponse) msg;
-            fullMsg = new DefaultFullHttpResponse(
-                    res.getProtocolVersion(), res.getStatus(), Unpooled.EMPTY_BUFFER, false);
+            fullMsg = new AggregatedFullHttpResponse(
+                    (HttpResponse) msg, Unpooled.EMPTY_BUFFER, new DefaultHttpHeaders());
         } else {
             throw new IllegalStateException();
         }
 
         return fullMsg;
+    }
+
+    private abstract static class AggregatedFullHttpMessage extends DefaultByteBufHolder implements FullHttpMessage {
+        protected final HttpMessage message;
+        private HttpHeaders trailingHeaders;
+
+        private AggregatedFullHttpMessage(HttpMessage message, ByteBuf content, HttpHeaders trailingHeaders) {
+            super(content);
+            this.message = message;
+            this.trailingHeaders = trailingHeaders;
+        }
+        @Override
+        public HttpHeaders trailingHeaders() {
+            return trailingHeaders;
+        }
+
+        public void setTrailingHeaders(HttpHeaders trailingHeaders) {
+            this.trailingHeaders = trailingHeaders;
+        }
+
+        @Override
+        public HttpVersion getProtocolVersion() {
+            return message.getProtocolVersion();
+        }
+
+        @Override
+        public FullHttpMessage setProtocolVersion(HttpVersion version) {
+            message.setProtocolVersion(version);
+            return this;
+        }
+
+        @Override
+        public HttpHeaders headers() {
+            return message.headers();
+        }
+
+        @Override
+        public DecoderResult getDecoderResult() {
+            return message.getDecoderResult();
+        }
+
+        @Override
+        public void setDecoderResult(DecoderResult result) {
+            message.setDecoderResult(result);
+        }
+
+        @Override
+        public FullHttpMessage retain(int increment) {
+            super.retain(increment);
+            return this;
+        }
+
+        @Override
+        public FullHttpMessage retain() {
+            super.retain();
+            return this;
+        }
+
+        @Override
+        public abstract FullHttpMessage copy();
+
+        @Override
+        public abstract FullHttpMessage duplicate();
+    }
+
+    private static final class AggregatedFullHttpRequest extends AggregatedFullHttpMessage implements FullHttpRequest {
+
+        private AggregatedFullHttpRequest(HttpRequest request, ByteBuf content, HttpHeaders trailingHeaders) {
+            super(request, content, trailingHeaders);
+        }
+
+        @Override
+        public FullHttpRequest copy() {
+            DefaultFullHttpRequest copy = new DefaultFullHttpRequest(
+                    getProtocolVersion(), getMethod(), getUri(), content().copy());
+            copy.headers().set(headers());
+            copy.trailingHeaders().set(trailingHeaders());
+            return copy;
+        }
+
+        @Override
+        public FullHttpRequest duplicate() {
+            DefaultFullHttpRequest duplicate = new DefaultFullHttpRequest(
+                    getProtocolVersion(), getMethod(), getUri(), content().duplicate());
+            duplicate.headers().set(headers());
+            duplicate.trailingHeaders().set(trailingHeaders());
+            return duplicate;
+        }
+
+        @Override
+        public FullHttpRequest retain(int increment) {
+            super.retain(increment);
+            return this;
+        }
+
+        @Override
+        public FullHttpRequest retain() {
+            super.retain();
+            return this;
+        }
+
+        @Override
+        public FullHttpRequest setMethod(HttpMethod method) {
+            ((HttpRequest) message).setMethod(method);
+            return this;
+        }
+
+        @Override
+        public FullHttpRequest setUri(AppendableCharSequence uri) {
+            ((HttpRequest) message).setUri(uri);
+            return this;
+        }
+
+        @Override
+        public HttpMethod getMethod() {
+            return ((HttpRequest) message).getMethod();
+        }
+
+        @Override
+        public AppendableCharSequence getUri() {
+            return ((HttpRequest) message).getUri();
+        }
+
+        @Override
+        public FullHttpRequest setProtocolVersion(HttpVersion version) {
+            super.setProtocolVersion(version);
+            return this;
+        }
+    }
+
+    private static final class AggregatedFullHttpResponse extends AggregatedFullHttpMessage
+            implements FullHttpResponse {
+        private AggregatedFullHttpResponse(HttpResponse message, ByteBuf content, HttpHeaders trailingHeaders) {
+            super(message, content, trailingHeaders);
+        }
+
+        @Override
+        public FullHttpResponse copy() {
+            DefaultFullHttpResponse copy = new DefaultFullHttpResponse(
+                    getProtocolVersion(), getStatus(), content().copy());
+            copy.headers().set(headers());
+            copy.trailingHeaders().set(trailingHeaders());
+            return copy;
+        }
+
+        @Override
+        public FullHttpResponse duplicate() {
+            DefaultFullHttpResponse duplicate = new DefaultFullHttpResponse(getProtocolVersion(), getStatus(),
+                    content().duplicate());
+            duplicate.headers().set(headers());
+            duplicate.trailingHeaders().set(trailingHeaders());
+            return duplicate;
+        }
+
+        @Override
+        public FullHttpResponse setStatus(HttpResponseStatus status) {
+            ((HttpResponse) message).setStatus(status);
+            return this;
+        }
+
+        @Override
+        public HttpResponseStatus getStatus() {
+            return ((HttpResponse) message).getStatus();
+        }
+
+        @Override
+        public FullHttpResponse setProtocolVersion(HttpVersion version) {
+            super.setProtocolVersion(version);
+            return this;
+        }
+
+        @Override
+        public FullHttpResponse retain(int increment) {
+            super.retain(increment);
+            return this;
+        }
+
+        @Override
+        public FullHttpResponse retain() {
+            super.retain();
+            return this;
+        }
     }
 }
