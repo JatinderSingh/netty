@@ -19,6 +19,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.TooLongFrameException;
+import io.netty.handler.codec.http.HttpObjectDecoder.State;
 import io.netty.util.internal.AppendableCharSequence;
 
 import java.util.List;
@@ -101,7 +102,7 @@ public class HttpRequestDecoder extends HttpObjectDecoder {
             }
             case READ_INITIAL: try {
                 message = createMessage(buffer);
-
+                checkpoint(State.READ_HEADER);
             } catch (Exception e) {
                 out.add(invalidMessage(e));
                 return;
