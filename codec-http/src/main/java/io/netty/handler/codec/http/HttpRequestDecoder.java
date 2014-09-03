@@ -107,6 +107,7 @@ public class HttpRequestDecoder extends HttpObjectDecoder {
                 return;
             }
         }
+        super.decode(ctx, buffer, out);
     }
     
     @Override
